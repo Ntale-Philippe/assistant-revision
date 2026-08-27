@@ -125,3 +125,14 @@ depuis la page Administration : la personne sera bloquée dès sa prochaine visi
 
 Il n'y a pas de "code oublié" : si un client perd à la fois son lien personnel et son
 code, il doit te recontacter pour qu'un nouveau code lui soit fourni. Préviens-en tes clients.
+
+### Accès limité dans le temps (abonnement)
+
+Chaque code a une durée (30 jours par défaut, modifiable au moment de le générer — mets
+par exemple ~120 jours pour un accès "semestre"). Le compte à rebours démarre à la
+**première utilisation** du code par le client, pas à sa génération. Une fois le délai
+écoulé, l'accès se coupe automatiquement, sans rien à faire de ton côté.
+
+Quand un client repaie pour continuer, retourne sur `/Administration` et clique
+**"Renouveler"** sur son code existant : ça prolonge son accès sans qu'il ait besoin de
+changer de lien ni de ressaisir quoi que ce soit.

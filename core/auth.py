@@ -35,8 +35,10 @@ def get_identity() -> tuple[str | None, str | None, str | None]:
     if moi and code and cle_url:
         licence = repository.obtenir_licence(code)
         if licence and licence["statut"] in ("disponible", "attribuee"):
+            if licence["expiree"]:
+                return "expiree", moi, cle_url  # sentinelle : jamais une vraie licence
             return code, moi, cle_url
-        return "invalide", moi, cle_url  # identifiant sentinelle : jamais une vraie licence
+        return "invalide", moi, cle_url  # sentinelle : jamais une vraie licence
 
     if not moi:
         cle_secrets = get_api_key()
@@ -60,6 +62,12 @@ def exiger_identification() -> tuple[str, str, str]:
         st.error(
             "Ce code d'accès n'est pas valide ou a été désactivé. "
             "Contacte la personne qui te l'a fourni."
+        )
+        st.stop()
+
+    if identifiant == "expiree":
+        st.error(
+            "Ton accès a expiré. Contacte la personne qui te l'a fourni pour le renouveler."
         )
         st.stop()
 

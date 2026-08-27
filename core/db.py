@@ -184,8 +184,10 @@ CREATE TABLE IF NOT EXISTS licences (
     statut TEXT NOT NULL DEFAULT 'disponible',
     note TEXT,
     prenom_client TEXT,
+    duree_jours INTEGER NOT NULL DEFAULT 30,
     created_at TEXT DEFAULT (datetime('now')),
-    activee_le TEXT
+    activee_le TEXT,
+    expire_le TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages_chat (
@@ -216,3 +218,9 @@ def _migrer_si_besoin(conn):
     colonnes = {row["name"] for row in conn.execute("PRAGMA table_info(cours)").fetchall()}
     if "proprietaire" not in colonnes:
         conn.execute("ALTER TABLE cours ADD COLUMN proprietaire TEXT NOT NULL DEFAULT 'moi'")
+
+    colonnes_licences = {row["name"] for row in conn.execute("PRAGMA table_info(licences)").fetchall()}
+    if "expire_le" not in colonnes_licences:
+        conn.execute("ALTER TABLE licences ADD COLUMN expire_le TEXT")
+    if "duree_jours" not in colonnes_licences:
+        conn.execute("ALTER TABLE licences ADD COLUMN duree_jours INTEGER NOT NULL DEFAULT 30")

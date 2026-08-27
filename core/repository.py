@@ -220,38 +220,77 @@ def derniere_tentative(quiz_id: int, phase: str) -> dict | None:
 # puis donné au client. Sans un code valide, personne ne peut entrer dans l'appli
 # en mode partagé : c'est la vraie barrière de paiement.
 
-def creer_licence(code: str, note: str = "") -> None:
+def creer_licence(code: str, note: str = "", duree_jours: int = 30) -> None:
     with get_connection() as conn:
         conn.execute(
-            "INSERT INTO licences (code, statut, note) VALUES (?, 'disponible', ?)",
-            (code, note),
+            "INSERT INTO licences (code, statut, note, duree_jours) VALUES (?, 'disponible', ?, ?)",
+            (code, note, duree_jours),
         )
 
 
 def obtenir_licence(code: str) -> dict | None:
-    """Recherche insensible à la casse : peu importe comment le client tape son code."""
+    """Recherche insensible à la casse. Ajoute un champ calculé 'expiree' (0 ou 1)."""
     with get_connection() as conn:
         row = conn.execute(
-            "SELECT * FROM licences WHERE UPPER(code) = UPPER(?)", (code,)
+            """SELECT *, (expire_le IS NOT NULL AND expire_le < datetime('now')) AS expiree
+               FROM licences WHERE UPPER(code) = UPPER(?)""",
+            (code,),
         ).fetchone()
         return dict(row) if row else None
 
 
 def activer_licence(code: str, prenom_client: str) -> None:
     """Marque une licence 'disponible' comme attribuée à ce prénom, la première fois
-    qu'elle est utilisée avec succès. Ne fait rien si elle est déjà attribuée."""
+    qu'elle est utilisée avec succès, et démarre son compte à rebours (duree_jours).
+    Ne fait rien si elle est déjà attribuée (le décompte ne redémarre pas à chaque connexion)."""
     with get_connection() as conn:
         conn.execute(
             """UPDATE licences SET statut = 'attribuee', prenom_client = ?,
-               activee_le = datetime('now')
+               activee_le = datetime('now'),
+               expire_le = datetime('now', '+' || duree_jours || ' days')
                WHERE UPPER(code) = UPPER(?) AND statut = 'disponible'""",
             (prenom_client, code),
         )
 
 
+def prolonger_licence(code: str, jours: int | None = None) -> None:
+    """Prolonge une licence après un nouveau paiement. Repart de la date d'expiration
+    actuelle si elle n'est pas encore dépassée (le client ne perd aucun jour payé
+    d'avance), sinon repart d'aujourd'hui. Si `jours` n'est pas précisé, réutilise la
+    durée d'origine de la licence (sa colonne duree_jours)."""
+    with get_connection() as conn:
+        if jours is None:
+            conn.execute(
+                """UPDATE licences SET
+                   expire_le = datetime(
+                       CASE WHEN expire_le IS NOT NULL AND expire_le > datetime('now')
+                            THEN expire_le ELSE datetime('now') END,
+                       '+' || duree_jours || ' days'
+                   ),
+                   statut = 'attribuee'
+                   WHERE UPPER(code) = UPPER(?)""",
+                (code,),
+            )
+        else:
+            conn.execute(
+                """UPDATE licences SET
+                   expire_le = datetime(
+                       CASE WHEN expire_le IS NOT NULL AND expire_le > datetime('now')
+                            THEN expire_le ELSE datetime('now') END,
+                       '+' || ? || ' days'
+                   ),
+                   statut = 'attribuee'
+                   WHERE UPPER(code) = UPPER(?)""",
+                (jours, code),
+            )
+
+
 def lister_licences() -> list[dict]:
     with get_connection() as conn:
-        rows = conn.execute("SELECT * FROM licences ORDER BY created_at DESC").fetchall()
+        rows = conn.execute(
+            """SELECT *, (expire_le IS NOT NULL AND expire_le < datetime('now')) AS expiree
+               FROM licences ORDER BY created_at DESC"""
+        ).fetchall()
         return [dict(r) for r in rows]
 
 
