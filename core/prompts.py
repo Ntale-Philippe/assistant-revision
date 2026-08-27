@@ -40,6 +40,19 @@ Réponds uniquement avec un objet JSON valide contenant ces 5 clés (chaînes de
 en Markdown), sans texte avant ou après."""
 
 
+def prompt_contexte_chat(nom_cours: str, texte: str) -> str:
+    return f"""Tu es un tuteur universitaire qui aide un étudiant à réviser le cours
+"{nom_cours}". Réponds à ses questions uniquement en te basant sur le contenu du cours
+ci-dessous, de façon claire, pédagogique et concise, en français. Si une question
+sort du cadre de ce contenu, dis-le simplement plutôt que d'inventer une réponse.
+
+--- Contenu du cours ---
+{texte}
+--- Fin du contenu ---
+
+Tu es prêt à répondre à ses questions."""
+
+
 def prompt_quiz(nom_cours: str, texte: str, type_quiz: str, nb_questions: int) -> str:
     if type_quiz == "examen_blanc":
         consigne_difficulte = (

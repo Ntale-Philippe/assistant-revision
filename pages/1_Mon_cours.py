@@ -6,6 +6,7 @@ import streamlit as st
 
 from core import repository
 from core.auth import exiger_identification
+from core.chat_service import poser_question
 from core.config import EXTENSIONS_ACCEPTEES, UPLOADS_DIR
 from core.db import init_db
 from core.extraction import extraire_texte, type_fichier_depuis_nom
@@ -39,7 +40,7 @@ st.title(cours["nom"])
 if cours.get("description"):
     st.caption(cours["description"])
 
-tab_docs, tab_synthese, tab_quiz = st.tabs(["Documents", "Synthèse", "Quiz"])
+tab_docs, tab_synthese, tab_quiz, tab_chat = st.tabs(["Documents", "Synthèse", "Quiz", "Discussion"])
 
 # --- Onglet Documents ---------------------------------------------------------
 
@@ -211,3 +212,37 @@ with tab_quiz:
             if tentatives_examen:
                 derniere = tentatives_examen[-1]
                 st.caption(f"Dernier score : {derniere['score']} / {derniere['score_max']}")
+
+# --- Onglet Discussion -------------------------------------------------------
+
+with tab_chat:
+    st.subheader("Pose une question sur ce cours")
+    st.caption(
+        "L'IA répond en se basant uniquement sur les documents déposés dans ce cours."
+    )
+
+    documents_dispo = repository.lister_documents(cours_id)
+    if not any(d.get("texte_extrait") for d in documents_dispo):
+        st.info("Ajoute au moins un document (onglet Documents) avant de poser une question.")
+    else:
+        if st.button("Vider la conversation", key="vider_chat"):
+            repository.vider_chat(cours_id)
+            st.rerun()
+
+        messages = repository.lister_messages_chat(cours_id)
+        for message in messages:
+            role_affiche = "user" if message["role"] == "utilisateur" else "assistant"
+            with st.chat_message(role_affiche):
+                st.markdown(message["contenu"])
+
+        question = st.chat_input("Ta question sur le cours...")
+        if question:
+            with st.chat_message("user"):
+                st.markdown(question)
+            with st.chat_message("assistant"):
+                with st.spinner("Réflexion..."):
+                    try:
+                        reponse = poser_question(cours_id, identifiant, question, api_key)
+                        st.markdown(reponse)
+                    except Exception as e:
+                        st.error(f"Erreur : {e}")

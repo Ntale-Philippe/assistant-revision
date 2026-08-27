@@ -187,6 +187,14 @@ CREATE TABLE IF NOT EXISTS licences (
     created_at TEXT DEFAULT (datetime('now')),
     activee_le TEXT
 );
+
+CREATE TABLE IF NOT EXISTS messages_chat (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cours_id INTEGER NOT NULL REFERENCES cours(id) ON DELETE CASCADE,
+    role TEXT NOT NULL,
+    contenu TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+);
 """
 
 

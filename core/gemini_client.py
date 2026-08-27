@@ -70,3 +70,26 @@ def lire_pdf(pdf_bytes: bytes, prompt: str, api_key: str) -> str:
         ],
     )
     return response.text
+
+
+def repondre_chat(contexte: str, historique: list[dict], nouvelle_question: str, api_key: str) -> str:
+    """Répond à une question dans une conversation multi-tours.
+
+    `historique` est une liste de dicts {"role": "utilisateur"|"assistant", "contenu": str}
+    déjà échangés avant cette nouvelle question (sans elle)."""
+    client = _get_client(api_key)
+
+    contents = [
+        types.Content(role="user", parts=[types.Part.from_text(text=contexte)]),
+        types.Content(
+            role="model",
+            parts=[types.Part.from_text(text="Compris, je suis prêt à répondre à tes questions sur ce cours.")],
+        ),
+    ]
+    for message in historique:
+        role = "user" if message["role"] == "utilisateur" else "model"
+        contents.append(types.Content(role=role, parts=[types.Part.from_text(text=message["contenu"])]))
+    contents.append(types.Content(role="user", parts=[types.Part.from_text(text=nouvelle_question)]))
+
+    response = client.models.generate_content(model=GEMINI_MODEL, contents=contents)
+    return response.text
