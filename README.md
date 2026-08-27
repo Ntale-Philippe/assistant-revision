@@ -43,7 +43,33 @@ retourne dans le terminal et appuie sur `Ctrl + C`.
 Toutes tes données (cours, documents, scores) restent uniquement sur ton ordinateur,
 dans le dossier `data/`.
 
-## 4. Mettre en ligne pour vendre ou partager (gratuit, sans que ton PC reste allumé)
+## 4. Base de données permanente (Turso) — indispensable avant de vendre
+
+En local, tes données vivent dans `data/app.db`, un simple fichier sur ton PC. Mais une
+fois l'appli hébergée en ligne (étape 5), cet hébergement gratuit peut effacer ce
+fichier à tout moment (mise à jour du code, redémarrage après une période d'inactivité).
+Pour ne jamais perdre les codes de licence vendus ni les cours de tes clients, on
+branche l'appli sur une vraie base de données qui, elle, ne s'efface jamais :
+
+1. Crée un compte gratuit sur https://turso.tech
+2. Crée une base de données (bouton "Create Database", garde les réglages par défaut).
+3. Dans le tableau de bord de ta base, récupère :
+   - l'**URL de connexion** (commence par `libsql://...`)
+   - un **jeton d'authentification** (auth token) — génère-le depuis l'onglet dédié
+4. Ajoute ces deux valeurs dans `.streamlit/secrets.toml`, exactement comme Turso te
+   les donne (garde le préfixe `libsql://`, l'appli l'ajuste elle-même) :
+   ```toml
+   TURSO_DATABASE_URL = "libsql://ton-nom-de-base.turso.io"
+   TURSO_AUTH_TOKEN = "ton-jeton-ici"
+   ```
+5. Relance l'appli : elle utilisera automatiquement Turso au lieu du fichier local dès
+   que ces deux valeurs sont présentes. Sans elles, elle continue de fonctionner en
+   local exactement comme avant (pratique pour tester sur ton PC).
+
+Aucune installation supplémentaire n'est nécessaire : l'appli parle à Turso directement
+par le web (rien à compiler, ça marche sur n'importe quelle machine).
+
+## 5. Mettre en ligne pour vendre ou partager (gratuit, sans que ton PC reste allumé)
 
 L'appli sait fonctionner en **mode partagé** : plusieurs personnes peuvent l'utiliser
 en même temps, chacune avec ses propres cours (invisibles pour les autres, y compris
@@ -68,13 +94,18 @@ Ne mets jamais ta clé API dans le code que tu envoies sur GitHub — le fichier
 `.streamlit/secrets.toml` est volontairement exclu (voir `.gitignore`), c'est normal
 et voulu : l'appli hébergée n'a besoin d'aucune clé "globale", chacun apporte la sienne.
 
-Une fois en ligne, ajoute aussi un mot de passe administrateur dans les secrets de ton
-appli sur share.streamlit.io (section "Secrets" des paramètres de l'appli) :
+Une fois en ligne, ajoute dans les secrets de ton appli sur share.streamlit.io (section
+"Secrets" des paramètres de l'appli) les **mêmes valeurs** que dans ton
+`.streamlit/secrets.toml` local (clé Gemini si tu veux garder un accès solo, mot de
+passe administrateur, et surtout `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` de l'étape 4
+— sans elles en ligne, l'appli hébergée repartirait sur un fichier local non permanent) :
 ```toml
 ADMIN_PASSWORD = "un mot de passe que toi seul connais"
+TURSO_DATABASE_URL = "libsql://ton-nom-de-base.turso.io"
+TURSO_AUTH_TOKEN = "ton-jeton-ici"
 ```
 
-## 5. Vendre l'accès (codes de licence)
+## 6. Vendre l'accès (codes de licence)
 
 Personne ne peut entrer dans l'appli en mode partagé sans un **code de licence**
 généré par toi. C'est ta vraie barrière de paiement — sans elle, n'importe qui pourrait

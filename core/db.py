@@ -1,13 +1,122 @@
-"""Connexion SQLite et création du schéma de la base de données."""
+"""Connexion à la base de données et création du schéma.
+
+Deux modes possibles, choisis automatiquement :
+- Local (par défaut) : un fichier SQLite classique (data/app.db) sur ton PC.
+- Turso (si TURSO_DATABASE_URL et TURSO_AUTH_TOKEN sont configurés dans les secrets) :
+  une base de données hébergée gratuitement, qui survit aux redémarrages/redéploiements
+  de l'appli en ligne — contrairement au fichier local, qui peut être effacé quand
+  l'appli tourne sur un hébergement comme Streamlit Community Cloud.
+
+Une petite couche de compatibilité (_CompatConnection / _CompatCursor) fait que tout
+le reste du code (repository.py) fonctionne à l'identique, peu importe lequel des deux
+modes est actif : les lignes sont toujours renvoyées sous forme de dict.
+"""
 
 import sqlite3
 from contextlib import contextmanager
 
 from core.config import DB_PATH, ensure_dirs
 
-SCHEMA = """
-PRAGMA foreign_keys = ON;
 
+def _turso_credentials():
+    """Retourne (url, token) si Turso est configuré dans les secrets, sinon (None, None)."""
+    try:
+        import streamlit as st
+
+        url = st.secrets.get("TURSO_DATABASE_URL")
+        token = st.secrets.get("TURSO_AUTH_TOKEN")
+        if url and token:
+            return url, token
+    except Exception:
+        pass
+    return None, None
+
+
+class _CompatCursor:
+    """Enveloppe un curseur (sqlite3 ou libsql) pour toujours renvoyer des dicts,
+    peu importe le pilote utilisé en dessous."""
+
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    def execute(self, sql, params=()):
+        self._cursor.execute(sql, params)
+        return self
+
+    def fetchone(self):
+        row = self._cursor.fetchone()
+        return self._vers_dict(row)
+
+    def fetchall(self):
+        return [self._vers_dict(r) for r in self._cursor.fetchall()]
+
+    def _vers_dict(self, row):
+        if row is None:
+            return None
+        colonnes = [d[0] for d in self._cursor.description]
+        return dict(zip(colonnes, row))
+
+    @property
+    def lastrowid(self):
+        # On ne se fie pas uniquement à l'attribut du pilote (pas garanti identique
+        # partout) : on retombe sur la fonction SQL standard si besoin.
+        valeur = getattr(self._cursor, "lastrowid", None)
+        if valeur:
+            return valeur
+        self._cursor.execute("SELECT last_insert_rowid()")
+        ligne = self._cursor.fetchone()
+        return ligne[0] if ligne else None
+
+
+class _CompatConnection:
+    def __init__(self, connexion_brute):
+        self._conn = connexion_brute
+
+    def execute(self, sql, params=()):
+        curseur = self._conn.cursor()
+        curseur.execute(sql, params)
+        return _CompatCursor(curseur)
+
+    def executescript(self, sql):
+        for instruction in filter(None, (s.strip() for s in sql.split(";"))):
+            self._conn.cursor().execute(instruction)
+
+    def commit(self):
+        self._conn.commit()
+
+    def close(self):
+        self._conn.close()
+
+
+@contextmanager
+def get_connection():
+    """Ouvre une connexion courte (locale ou Turso selon la configuration)."""
+    ensure_dirs()
+    url, token = _turso_credentials()
+
+    if url and token:
+        from core.turso_http import TursoHTTPConnection
+
+        # Turso utilise le préfixe libsql:// pour ses SDK natifs ; en HTTP classique
+        # (via `requests`), il faut https://.
+        url_http = url.replace("libsql://", "https://", 1)
+        brute = TursoHTTPConnection(url_http, token)
+    else:
+        brute = sqlite3.connect(DB_PATH)
+
+    conn = _CompatConnection(brute)
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+    except Exception:
+        pass  # certains pilotes distants gèrent déjà ça autrement
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
+SCHEMA = """
 CREATE TABLE IF NOT EXISTS cours (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nom TEXT NOT NULL,
@@ -79,20 +188,6 @@ CREATE TABLE IF NOT EXISTS licences (
 """
 
 
-@contextmanager
-def get_connection():
-    """Ouvre une connexion SQLite courte (évite les soucis de threads avec Streamlit)."""
-    ensure_dirs()
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("PRAGMA foreign_keys = ON;")
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
-
-
 def init_db():
     """Crée les tables si elles n'existent pas encore. À appeler au démarrage de l'app."""
     with get_connection() as conn:
@@ -100,9 +195,9 @@ def init_db():
         _migrer_si_besoin(conn)
 
 
-def _migrer_si_besoin(conn: sqlite3.Connection):
+def _migrer_si_besoin(conn):
     """Ajoute les colonnes apparues après la première version du schéma,
     pour ne pas casser une base de données déjà créée avant leur ajout."""
-    colonnes = {row["name"] for row in conn.execute("PRAGMA table_info(cours)")}
+    colonnes = {row["name"] for row in conn.execute("PRAGMA table_info(cours)").fetchall()}
     if "proprietaire" not in colonnes:
         conn.execute("ALTER TABLE cours ADD COLUMN proprietaire TEXT NOT NULL DEFAULT 'moi'")

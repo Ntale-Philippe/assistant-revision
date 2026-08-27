@@ -4,3 +4,4 @@ pypdf
 pillow
 pandas
 streamlit-autorefresh
+requests
