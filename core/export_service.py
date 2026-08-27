@@ -9,6 +9,7 @@ from core import repository
 NOMS_COLONNES = {
     "code": "Code",
     "prenom_client": "Client",
+    "contact": "Contact",
     "statut_affiche": "Statut",
     "montant": "Montant payé",
     "devise": "Devise",

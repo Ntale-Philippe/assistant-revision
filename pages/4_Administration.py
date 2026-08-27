@@ -71,7 +71,8 @@ with tab_codes:
         duree_jours = DUREES_PREDEFINIES[choix_duree]
 
     with st.form("nouveau_code_form", clear_on_submit=True):
-        note = st.text_input("Note (pour toi seulement)", placeholder="Ex : Alice - contact WhatsApp")
+        note = st.text_input("Note (pour toi seulement)", placeholder="Ex : Alice - copine de Bob")
+        contact = st.text_input("Contact du client", placeholder="Numéro WhatsApp, téléphone ou e-mail")
         col_montant, col_devise = st.columns([2, 1])
         with col_montant:
             montant = st.number_input("Montant payé", min_value=0.0, value=5.0, step=0.5)
@@ -80,7 +81,10 @@ with tab_codes:
         generer = st.form_submit_button("Générer un code")
         if generer:
             nouveau_code = repository.generer_code_licence()
-            repository.creer_licence(nouveau_code, note.strip(), int(duree_jours), montant, devise.strip() or "USD")
+            repository.creer_licence(
+                nouveau_code, note.strip(), int(duree_jours), montant,
+                devise.strip() or "USD", contact.strip(),
+            )
             st.session_state["dernier_code_genere"] = nouveau_code
 
     if st.session_state.get("dernier_code_genere"):
@@ -115,6 +119,8 @@ with tab_codes:
                     ))
                     if licence.get("note"):
                         st.caption(licence["note"])
+                    if licence.get("contact"):
+                        st.caption(f"Contact : {licence['contact']}")
                     if licence.get("prenom_client"):
                         st.caption(f"Utilisé par : {licence['prenom_client']} (activé le {licence.get('activee_le', '?')})")
                     if licence.get("expire_le"):

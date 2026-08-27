@@ -187,6 +187,7 @@ CREATE TABLE IF NOT EXISTS licences (
     duree_jours INTEGER NOT NULL DEFAULT 30,
     montant REAL,
     devise TEXT DEFAULT 'USD',
+    contact TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     activee_le TEXT,
     expire_le TEXT
@@ -230,3 +231,5 @@ def _migrer_si_besoin(conn):
         conn.execute("ALTER TABLE licences ADD COLUMN montant REAL")
     if "devise" not in colonnes_licences:
         conn.execute("ALTER TABLE licences ADD COLUMN devise TEXT DEFAULT 'USD'")
+    if "contact" not in colonnes_licences:
+        conn.execute("ALTER TABLE licences ADD COLUMN contact TEXT")

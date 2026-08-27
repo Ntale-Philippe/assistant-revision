@@ -222,13 +222,13 @@ def derniere_tentative(quiz_id: int, phase: str) -> dict | None:
 
 def creer_licence(
     code: str, note: str = "", duree_jours: int = 30,
-    montant: float | None = None, devise: str = "USD",
+    montant: float | None = None, devise: str = "USD", contact: str = "",
 ) -> None:
     with get_connection() as conn:
         conn.execute(
-            """INSERT INTO licences (code, statut, note, duree_jours, montant, devise)
-               VALUES (?, 'disponible', ?, ?, ?, ?)""",
-            (code, note, duree_jours, montant, devise),
+            """INSERT INTO licences (code, statut, note, duree_jours, montant, devise, contact)
+               VALUES (?, 'disponible', ?, ?, ?, ?, ?)""",
+            (code, note, duree_jours, montant, devise, contact),
         )
 
 
