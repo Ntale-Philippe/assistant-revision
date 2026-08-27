@@ -11,8 +11,24 @@ fetchall/lastrowid, commit/close) pour rester compatible avec le reste du code.
 """
 
 import base64
+import threading
 
 import requests
+
+# Une session HTTP partagée pour toute l'appli : réutilise la même connexion réseau
+# (TCP + TLS) entre les appels au lieu d'en rouvrir une nouvelle à chaque requête,
+# ce qui rendait chaque opération beaucoup plus lente que nécessaire.
+_verrou_session = threading.Lock()
+_session_partagee = None
+
+
+def _obtenir_session() -> requests.Session:
+    global _session_partagee
+    if _session_partagee is None:
+        with _verrou_session:
+            if _session_partagee is None:
+                _session_partagee = requests.Session()
+    return _session_partagee
 
 
 def _valeur_vers_json(valeur):
@@ -61,7 +77,7 @@ class TursoHTTPCursor:
                 {"type": "close"},
             ]
         }
-        reponse = requests.post(
+        reponse = self._connexion.session.post(
             f"{self._connexion.url}/v2/pipeline",
             json=payload,
             headers=self._connexion.headers,
@@ -112,6 +128,7 @@ class TursoHTTPConnection:
             "Authorization": f"Bearer {auth_token}",
             "Content-Type": "application/json",
         }
+        self.session = _obtenir_session()
 
     def cursor(self):
         return TursoHTTPCursor(self)

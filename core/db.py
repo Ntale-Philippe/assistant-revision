@@ -15,6 +15,8 @@ modes est actif : les lignes sont toujours renvoyées sous forme de dict.
 import sqlite3
 from contextlib import contextmanager
 
+import streamlit as st
+
 from core.config import DB_PATH, ensure_dirs
 
 
@@ -188,8 +190,13 @@ CREATE TABLE IF NOT EXISTS licences (
 """
 
 
+@st.cache_resource
 def init_db():
-    """Crée les tables si elles n'existent pas encore. À appeler au démarrage de l'app."""
+    """Crée les tables si elles n'existent pas encore. À appeler au démarrage de l'app.
+
+    Mis en cache (une seule fois par processus) : sans ça, Streamlit relance ce
+    contrôle à chaque interaction, ce qui ajoute un aller-retour réseau inutile à
+    chaque page quand la base est distante (Turso)."""
     with get_connection() as conn:
         conn.executescript(SCHEMA)
         _migrer_si_besoin(conn)
