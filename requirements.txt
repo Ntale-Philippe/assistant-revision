@@ -1,0 +1,6 @@
+streamlit
+google-genai
+pypdf
+pillow
+pandas
+streamlit-autorefresh
