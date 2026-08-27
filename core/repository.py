@@ -220,11 +220,15 @@ def derniere_tentative(quiz_id: int, phase: str) -> dict | None:
 # puis donné au client. Sans un code valide, personne ne peut entrer dans l'appli
 # en mode partagé : c'est la vraie barrière de paiement.
 
-def creer_licence(code: str, note: str = "", duree_jours: int = 30) -> None:
+def creer_licence(
+    code: str, note: str = "", duree_jours: int = 30,
+    montant: float | None = None, devise: str = "USD",
+) -> None:
     with get_connection() as conn:
         conn.execute(
-            "INSERT INTO licences (code, statut, note, duree_jours) VALUES (?, 'disponible', ?, ?)",
-            (code, note, duree_jours),
+            """INSERT INTO licences (code, statut, note, duree_jours, montant, devise)
+               VALUES (?, 'disponible', ?, ?, ?, ?)""",
+            (code, note, duree_jours, montant, devise),
         )
 
 
@@ -288,10 +292,17 @@ def prolonger_licence(code: str, jours: int | None = None) -> None:
 def lister_licences() -> list[dict]:
     with get_connection() as conn:
         rows = conn.execute(
-            """SELECT *, (expire_le IS NOT NULL AND expire_le < datetime('now')) AS expiree
+            """SELECT *,
+                      (expire_le IS NOT NULL AND expire_le < datetime('now')) AS expiree,
+                      CAST(ROUND(julianday(expire_le) - julianday('now')) AS INTEGER) AS jours_restants
                FROM licences ORDER BY created_at DESC"""
         ).fetchall()
-        return [dict(r) for r in rows]
+        licences = [dict(r) for r in rows]
+        for l in licences:
+            l["a_relancer"] = bool(l["expiree"]) or (
+                l["jours_restants"] is not None and l["jours_restants"] <= 5
+            )
+        return licences
 
 
 def revoquer_licence(code: str) -> None:

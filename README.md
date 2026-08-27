@@ -136,3 +136,11 @@ par exemple ~120 jours pour un accès "semestre"). Le compte à rebours démarre
 Quand un client repaie pour continuer, retourne sur `/Administration` et clique
 **"Renouveler"** sur son code existant : ça prolonge son accès sans qu'il ait besoin de
 changer de lien ni de ressaisir quoi que ce soit.
+
+### Suivi de tes ventes (Excel)
+
+En générant un code, note aussi le **montant payé**. La page Administration affiche un
+avertissement listant les clients **à relancer** (accès expiré ou qui va expirer sous
+5 jours). L'onglet **"Export Excel"** te permet de télécharger un fichier `.xlsx` avec
+tout le détail (client, montant, durée, dates, jours restants, qui relancer) —
+pratique pour un suivi comptable ou pour partager un état des lieux.

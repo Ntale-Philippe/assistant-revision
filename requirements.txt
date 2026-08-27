@@ -5,3 +5,4 @@ pillow
 pandas
 streamlit-autorefresh
 requests
+openpyxl
