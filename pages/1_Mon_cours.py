@@ -11,7 +11,7 @@ from core.gemini_client import GeminiNonConfigure
 from core.quiz_service import generer_quiz
 from core.synthese_service import generer_et_sauver_synthese
 
-st.set_page_config(page_title="Mon cours", page_icon="📘", layout="centered")
+st.set_page_config(page_title="Mon cours", layout="centered")
 init_db()
 
 pseudo, api_key = exiger_identification()
@@ -19,25 +19,25 @@ pseudo, api_key = exiger_identification()
 cours_id = st.session_state.get("cours_id")
 if not cours_id:
     st.warning("Aucun cours sélectionné.")
-    if st.button("← Retour à l'accueil"):
+    if st.button("Retour à l'accueil"):
         st.switch_page("app.py")
     st.stop()
 
 cours = repository.obtenir_cours(cours_id, pseudo)
 if not cours:
     st.error("Ce cours n'existe pas ou ne t'appartient pas.")
-    if st.button("← Retour à l'accueil"):
+    if st.button("Retour à l'accueil"):
         st.switch_page("app.py")
     st.stop()
 
-if st.button("← Retour à l'accueil"):
+if st.button("Retour à l'accueil"):
     st.switch_page("app.py")
 
-st.title(f"📘 {cours['nom']}")
+st.title(cours["nom"])
 if cours.get("description"):
     st.caption(cours["description"])
 
-tab_docs, tab_synthese, tab_quiz = st.tabs(["📄 Documents", "🧾 Synthèse", "📝 Quiz"])
+tab_docs, tab_synthese, tab_quiz = st.tabs(["Documents", "Synthèse", "Quiz"])
 
 # --- Onglet Documents ---------------------------------------------------------
 
@@ -73,7 +73,7 @@ with tab_docs:
                     repository.maj_texte_extrait(document_id, "", statut="erreur")
                     st.error(f"Erreur lors de la lecture de « {fichier.name} » : {e}")
 
-        st.success("Fichiers ajoutés !")
+        st.success("Fichiers ajoutés.")
         st.rerun()
 
     st.divider()
@@ -82,7 +82,7 @@ with tab_docs:
     if not documents:
         st.info("Aucun document pour l'instant.")
     else:
-        badges = {"ok": "✅ Lu", "erreur": "❌ Erreur", "en_attente": "⏳ En attente"}
+        badges = {"ok": "Lu", "erreur": "Erreur", "en_attente": "En attente"}
         for doc in documents:
             statut = badges.get(doc["statut_extraction"], doc["statut_extraction"])
             st.write(f"**{doc['nom_original']}** — {statut}")
@@ -96,7 +96,7 @@ with tab_synthese:
     with col1:
         st.subheader("Fiche de synthèse")
     with col2:
-        label = "🔄 Régénérer" if synthese else "✨ Générer"
+        label = "Régénérer" if synthese else "Générer"
         if st.button(label):
             with st.spinner("L'IA lit tes documents et prépare ta fiche..."):
                 try:
@@ -108,15 +108,15 @@ with tab_synthese:
     if not synthese:
         st.info("Pas encore de synthèse. Ajoute des documents puis clique sur « Générer ».")
     else:
-        with st.expander("📖 Synthèse du cours", expanded=True):
+        with st.expander("Synthèse du cours", expanded=True):
             st.markdown(synthese["synthese_md"])
-        with st.expander("🌍 Pourquoi c'est important en biologie"):
+        with st.expander("Pourquoi ce sujet est important"):
             st.markdown(synthese["contexte_md"])
-        with st.expander("🎯 Notions probables à l'examen"):
+        with st.expander("Notions probables à l'examen"):
             st.markdown(synthese["notions_examen_md"])
-        with st.expander("💎 À retenir pour la vie"):
+        with st.expander("À retenir pour la vie"):
             st.markdown(synthese["a_retenir_md"])
-        with st.expander("✨ Fun facts"):
+        with st.expander("Anecdotes"):
             st.markdown(synthese["fun_facts_md"])
 
 # --- Onglet Quiz -----------------------------------------------------------------
@@ -132,7 +132,7 @@ with tab_quiz:
 
     # --- Carte 1 : diagnostique avant ---
     with st.container(border=True):
-        st.markdown("#### 1️⃣ Quiz diagnostique (avant révision)")
+        st.markdown("#### 1. Quiz diagnostique (avant révision)")
         st.caption("Pour repérer tes lacunes avant de commencer à réviser.")
         if not quiz_diag:
             if st.button("Générer le quiz diagnostique"):
@@ -143,7 +143,7 @@ with tab_quiz:
                     except Exception as e:
                         st.error(f"Erreur : {e}")
         elif not tentative_avant:
-            if st.button("▶️ Passer le quiz (avant révision)"):
+            if st.button("Passer le quiz (avant révision)"):
                 st.session_state["quiz_id"] = quiz_diag["id"]
                 st.session_state["phase"] = "avant"
                 st.switch_page("pages/2_Quiz.py")
@@ -152,24 +152,24 @@ with tab_quiz:
 
     # --- Carte 2 : diagnostique après ---
     with st.container(border=True):
-        st.markdown("#### 2️⃣ Le même quiz (après révision)")
+        st.markdown("#### 2. Le même quiz (après révision)")
         st.caption("Repasse-le après avoir révisé pour voir ta progression.")
         if not quiz_diag or not tentative_avant:
             st.info("Passe d'abord le quiz « avant révision ».")
         elif not tentative_apres:
-            if st.button("▶️ Repasser le quiz (après révision)"):
+            if st.button("Repasser le quiz (après révision)"):
                 st.session_state["quiz_id"] = quiz_diag["id"]
                 st.session_state["phase"] = "apres"
                 st.switch_page("pages/2_Quiz.py")
         else:
             st.success(f"Score : {tentative_apres['score']} / {tentative_apres['score_max']}")
-            if st.button("📊 Voir ma progression"):
+            if st.button("Voir ma progression"):
                 st.session_state["cours_id_progression"] = cours_id
                 st.switch_page("pages/3_Progression.py")
 
     # --- Carte 3 : examen blanc ---
     with st.container(border=True):
-        st.markdown("#### 3️⃣ Examen blanc (chronométré)")
+        st.markdown("#### 3. Examen blanc (chronométré)")
         st.caption("Le quiz le plus corsé, en conditions d'examen.")
         if not quiz_examen:
             if st.button("Générer l'examen blanc"):
@@ -180,7 +180,7 @@ with tab_quiz:
                     except Exception as e:
                         st.error(f"Erreur : {e}")
         else:
-            if st.button("⏱️ Passer l'examen blanc"):
+            if st.button("Passer l'examen blanc"):
                 st.session_state["quiz_id"] = quiz_examen["id"]
                 st.session_state["phase"] = "examen_blanc"
                 st.switch_page("pages/2_Quiz.py")

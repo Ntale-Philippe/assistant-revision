@@ -1,4 +1,4 @@
-# 🧬 Mon assistant de révision
+# Mon assistant de révision
 
 Une petite application qui lit tes notes de cours (PDF, images, texte), te fait une
 fiche de synthèse, et te teste avec 3 quiz : un avant révision, le même après (pour
@@ -17,7 +17,7 @@ voir ta progression), et un examen blanc chronométré.
    ```
 6. Enregistre le fichier. C'est tout, tu ne referas ça qu'une seule fois.
 
-⚠️ Ne partage jamais cette clé (ne l'envoie pas par mail, ne la mets pas sur internet).
+Ne partage jamais cette clé (ne l'envoie pas par mail, ne la mets pas sur internet).
 
 ## 2. Lancer l'application
 
@@ -32,7 +32,7 @@ retourne dans le terminal et appuie sur `Ctrl + C`.
 
 ## 3. Utilisation
 
-1. Crée un cours (ex: "Biochimie métabolique")
+1. Crée un cours (n'importe quelle matière : droit, économie, ingénierie, lettres...)
 2. Dépose tes documents (PDF, captures d'écran, notes texte)
 3. Génère la fiche de synthèse
 4. Passe le quiz diagnostique (avant révision)
@@ -69,6 +69,6 @@ Gemini gratuite** (voir étape 1 de ce README) — pas besoin de compte ni de mo
 Une fois fait, l'appli lui propose un lien personnel à mettre en favori pour ne pas
 avoir à retaper ça à chaque fois.
 
-⚠️ Ne mets jamais ta clé API dans le code que tu envoies sur GitHub — le fichier
+Ne mets jamais ta clé API dans le code que tu envoies sur GitHub — le fichier
 `.streamlit/secrets.toml` est volontairement exclu (voir `.gitignore`), c'est normal
 et voulu : l'appli hébergée n'a besoin d'aucune clé "globale", chacun apporte la sienne.

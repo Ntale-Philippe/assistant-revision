@@ -19,7 +19,7 @@ SECRETS_PATH = Path(__file__).parent / ".streamlit" / "secrets.toml"
 
 def main():
     if not SECRETS_PATH.exists():
-        print("❌ Le fichier .streamlit/secrets.toml n'existe pas.")
+        print("Le fichier .streamlit/secrets.toml n'existe pas.")
         return
 
     with open(SECRETS_PATH, "rb") as f:
@@ -27,20 +27,20 @@ def main():
 
     api_key = secrets.get("GEMINI_API_KEY", "")
     if not api_key or api_key == "colle-ta-cle-ici":
-        print("❌ Tu n'as pas encore mis ta vraie clé API dans .streamlit/secrets.toml.")
+        print("Tu n'as pas encore mis ta vraie clé API dans .streamlit/secrets.toml.")
         return
 
-    print("🔎 Test de connexion à Gemini...")
+    print("Test de connexion à Gemini...")
     try:
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
             model="gemini-3.6-flash",
             contents=["Dis simplement 'Bonjour, ça fonctionne !' en français."],
         )
-        print("✅ Ça marche ! Réponse de Gemini :")
+        print("Ça marche. Réponse de Gemini :")
         print(response.text)
     except Exception as e:
-        print(f"❌ Erreur lors de l'appel à Gemini : {e}")
+        print(f"Erreur lors de l'appel à Gemini : {e}")
 
 
 if __name__ == "__main__":

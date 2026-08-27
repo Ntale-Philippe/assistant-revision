@@ -10,7 +10,7 @@ from core.auth import exiger_identification
 from core.db import init_db
 from core.quiz_service import corriger
 
-st.set_page_config(page_title="Quiz", page_icon="📝", layout="centered")
+st.set_page_config(page_title="Quiz", layout="centered")
 init_db()
 
 pseudo, api_key = exiger_identification()
@@ -20,14 +20,14 @@ phase = st.session_state.get("phase")
 
 if not quiz_id or not phase:
     st.warning("Aucun quiz sélectionné.")
-    if st.button("← Retour"):
+    if st.button("Retour"):
         st.switch_page("app.py")
     st.stop()
 
 quiz_row = repository.obtenir_quiz(quiz_id)
 if not quiz_row or not repository.obtenir_cours(quiz_row["cours_id"], pseudo):
     st.error("Ce quiz n'existe pas ou ne t'appartient pas.")
-    if st.button("← Retour à l'accueil"):
+    if st.button("Retour à l'accueil"):
         st.switch_page("app.py")
     st.stop()
 
@@ -37,7 +37,7 @@ noms_phase = {
     "apres": "Quiz diagnostique — après révision",
     "examen_blanc": "Examen blanc chronométré",
 }
-st.title(f"📝 {noms_phase.get(phase, 'Quiz')}")
+st.title(noms_phase.get(phase, "Quiz"))
 
 # Réinitialise l'état si on démarre une nouvelle tentative (quiz ou phase différents)
 session_key = f"{quiz_id}_{phase}"
@@ -66,8 +66,9 @@ if est_examen:
     restant = max(0, int(duree_totale - ecoule))
 
     minutes, secondes = divmod(restant, 60)
-    couleur = "🟢" if restant > 60 else "🔴"
-    st.metric(f"{couleur} Temps restant", f"{minutes:02d}:{secondes:02d}")
+    st.metric("Temps restant", f"{minutes:02d}:{secondes:02d}")
+    if restant <= 60:
+        st.caption("Moins d'une minute restante.")
 
     if restant <= 0:
         temps_ecoule = True
@@ -101,12 +102,12 @@ st.session_state["reponses"] = reponses
 # --- Validation ---------------------------------------------------------------
 
 if not quiz_verrouille:
-    if st.button("✅ Valider mes réponses", type="primary"):
+    if st.button("Valider mes réponses", type="primary"):
         st.session_state["quiz_termine"] = True
         st.rerun()
 
 if temps_ecoule and not st.session_state.get("resultat_affiche"):
-    st.warning("⏰ Temps écoulé ! Ton examen a été soumis automatiquement.")
+    st.warning("Temps écoulé. Ton examen a été soumis automatiquement.")
 
 if st.session_state.get("quiz_termine"):
     liste_reponses = [reponses[i] for i in range(len(questions))]
@@ -126,14 +127,14 @@ if st.session_state.get("quiz_termine"):
         bonne = q["bonne_reponse_index"]
         donnee = liste_reponses[i]
         if donnee == bonne:
-            st.success(f"**{i + 1}.** {q['enonce']} ✅")
+            st.success(f"**{i + 1}.** {q['enonce']}")
         else:
             reponse_donnee = q["choix"][donnee] if donnee is not None else "(pas de réponse)"
             st.error(f"**{i + 1}.** {q['enonce']}\n\nTa réponse : {reponse_donnee}\n\nBonne réponse : {q['choix'][bonne]}")
         if q.get("explication"):
-            st.caption(f"💡 {q['explication']}")
+            st.caption(q["explication"])
 
-    if st.button("← Retour au cours"):
+    if st.button("Retour au cours"):
         for cle in ["quiz_session_key", "reponses", "quiz_debut", "quiz_termine", "resultat_sauve"]:
             st.session_state.pop(cle, None)
         st.switch_page("pages/1_Mon_cours.py")

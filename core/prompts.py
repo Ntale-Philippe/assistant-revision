@@ -13,7 +13,8 @@ Réponds uniquement avec le texte transcrit, en français."""
 
 
 def prompt_synthese(nom_cours: str, texte: str) -> str:
-    return f"""Tu es un excellent tuteur universitaire en biologie, pédagogue et précis.
+    return f"""Tu es un excellent tuteur universitaire, pédagogue et précis, capable
+d'enseigner n'importe quelle discipline (sciences, droit, lettres, économie, ingénierie...).
 Voici tout le contenu extrait des documents du cours "{nom_cours}" :
 
 ---
@@ -25,13 +26,14 @@ Voici tout le contenu extrait des documents du cours "{nom_cours}" :
 
 1. "synthese" : un résumé structuré et complet du cours (les points clés, organisés
    logiquement, en Markdown avec des titres ## et des listes à puces).
-2. "contexte" : pourquoi ce sujet est important en biologie (lien avec d'autres notions,
-   applications médicales/scientifiques, pourquoi un biologiste doit le comprendre).
-3. "notions_examen" : les passages, définitions ou mécanismes les plus susceptibles de
-   tomber à l'examen, avec une courte justification pour chacun (liste à puces).
+2. "contexte" : pourquoi ce sujet est important dans cette discipline (lien avec
+   d'autres notions du cursus, applications concrètes, pourquoi un étudiant de cette
+   filière doit le maîtriser).
+3. "notions_examen" : les passages, définitions ou raisonnements les plus susceptibles
+   de tomber à l'examen, avec une courte justification pour chacun (liste à puces).
 4. "a_retenir" : les notions fondamentales à retenir "pour la vie", au-delà de l'examen
    (liste à puces, allant à l'essentiel).
-5. "fun_facts" : 3 à 5 faits surprenants ou anecdotes liés au sujet, pour rendre le
+5. "fun_facts" : 3 à 5 anecdotes ou faits marquants liés au sujet, pour rendre le
    cours mémorable.
 
 Réponds uniquement avec un objet JSON valide contenant ces 5 clés (chaînes de texte
@@ -51,7 +53,7 @@ def prompt_quiz(nom_cours: str, texte: str, type_quiz: str, nb_questions: int) -
             "base et de repérer les lacunes, pas de piéger l'étudiant."
         )
 
-    return f"""Tu es un professeur de biologie qui prépare un quiz à choix multiples (QCM)
+    return f"""Tu es un professeur universitaire qui prépare un quiz à choix multiples (QCM)
 pour le cours "{nom_cours}", à partir du contenu suivant :
 
 ---

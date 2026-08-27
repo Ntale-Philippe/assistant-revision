@@ -7,15 +7,15 @@ from core import repository
 from core.auth import exiger_identification
 from core.db import init_db
 
-st.set_page_config(page_title="Progression", page_icon="📊", layout="centered")
+st.set_page_config(page_title="Progression", layout="centered")
 init_db()
 
 pseudo, api_key = exiger_identification()
 
-if st.button("← Retour à l'accueil"):
+if st.button("Retour à l'accueil"):
     st.switch_page("app.py")
 
-st.title("📊 Ma progression")
+st.title("Ma progression")
 
 cours_list = repository.lister_cours(pseudo)
 if not cours_list:
@@ -36,7 +36,7 @@ st.divider()
 
 quiz_diag = repository.obtenir_quiz_par_type(cours_id, "diagnostique")
 
-st.subheader("1️⃣ → 2️⃣ Progression sur le quiz diagnostique")
+st.subheader("Progression sur le quiz diagnostique")
 
 if not quiz_diag:
     st.info("Pas encore de quiz diagnostique pour ce cours.")
@@ -70,7 +70,7 @@ st.divider()
 
 # --- Historique de l'examen blanc --------------------------------------------
 
-st.subheader("3️⃣ Historique de l'examen blanc")
+st.subheader("Historique de l'examen blanc")
 
 quiz_examen = repository.obtenir_quiz_par_type(cours_id, "examen_blanc")
 

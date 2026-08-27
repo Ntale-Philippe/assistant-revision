@@ -44,7 +44,7 @@ def exiger_identification() -> tuple[str, str]:
     if pseudo and cle_api:
         return pseudo, cle_api
 
-    st.title("👋 Bienvenue !")
+    st.title("Bienvenue")
     st.write(
         "Avant de commencer, dis-moi comment tu t'appelles et donne ta propre clé "
         "Gemini gratuite (comme ça, tes cours restent privés et personne d'autre "
@@ -53,8 +53,7 @@ def exiger_identification() -> tuple[str, str]:
     st.info(
         "Pas encore de clé ? Va sur https://aistudio.google.com/apikey, connecte-toi "
         "avec ton compte Google, puis clique sur **\"Create API key\"** → "
-        "**\"Create API key in new project\"**. C'est gratuit et ça prend 2 minutes.",
-        icon="🔑",
+        "**\"Create API key in new project\"**. C'est gratuit et ça prend 2 minutes."
     )
 
     with st.form("identification_form"):
