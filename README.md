@@ -42,3 +42,33 @@ retourne dans le terminal et appuie sur `Ctrl + C`.
 
 Toutes tes données (cours, documents, scores) restent uniquement sur ton ordinateur,
 dans le dossier `data/`.
+
+## 4. Partager avec tes collègues (gratuit, sans que ton PC reste allumé)
+
+L'appli sait fonctionner en **mode partagé** : plusieurs personnes peuvent l'utiliser
+en même temps, chacune avec ses propres cours (invisibles pour les autres) et sa
+propre clé Gemini gratuite. Pour ça, il faut la mettre en ligne gratuitement :
+
+1. **Crée un compte GitHub gratuit** sur https://github.com (si tu n'en as pas déjà un).
+2. **Crée un nouveau repository** (bouton vert "New") — tu peux le laisser privé ou public.
+3. Connecte ce dossier au repository que tu viens de créer et envoie le code :
+   ```bash
+   git remote add origin https://github.com/TON-PSEUDO/NOM-DU-REPO.git
+   git push -u origin master
+   ```
+   (Git te demandera de te connecter à ton compte GitHub la première fois — suis les
+   instructions à l'écran, aucune clé/mot de passe ne passe par moi.)
+4. **Crée un compte gratuit** sur https://share.streamlit.io (connecte-toi avec GitHub).
+5. Clique sur **"New app"**, choisis ton repository, la branche `master`, et le fichier
+   principal `app.py`. Clique sur **"Deploy"**.
+6. Après quelques minutes, tu obtiens un lien du genre `https://tonapp.streamlit.app`
+   — c'est CE lien que tu partages avec tes collègues.
+
+Chaque collègue qui ouvre ce lien devra juste indiquer son prénom et **sa propre clé
+Gemini gratuite** (voir étape 1 de ce README) — pas besoin de compte ni de mot de passe.
+Une fois fait, l'appli lui propose un lien personnel à mettre en favori pour ne pas
+avoir à retaper ça à chaque fois.
+
+⚠️ Ne mets jamais ta clé API dans le code que tu envoies sur GitHub — le fichier
+`.streamlit/secrets.toml` est volontairement exclu (voir `.gitignore`), c'est normal
+et voulu : l'appli hébergée n'a besoin d'aucune clé "globale", chacun apporte la sienne.
