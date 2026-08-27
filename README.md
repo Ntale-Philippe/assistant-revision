@@ -43,11 +43,11 @@ retourne dans le terminal et appuie sur `Ctrl + C`.
 Toutes tes données (cours, documents, scores) restent uniquement sur ton ordinateur,
 dans le dossier `data/`.
 
-## 4. Partager avec tes collègues (gratuit, sans que ton PC reste allumé)
+## 4. Mettre en ligne pour vendre ou partager (gratuit, sans que ton PC reste allumé)
 
 L'appli sait fonctionner en **mode partagé** : plusieurs personnes peuvent l'utiliser
-en même temps, chacune avec ses propres cours (invisibles pour les autres) et sa
-propre clé Gemini gratuite. Pour ça, il faut la mettre en ligne gratuitement :
+en même temps, chacune avec ses propres cours (invisibles pour les autres, y compris
+pour toi) et sa propre clé Gemini gratuite. Pour ça, il faut la mettre en ligne gratuitement :
 
 1. **Crée un compte GitHub gratuit** sur https://github.com (si tu n'en as pas déjà un).
 2. **Crée un nouveau repository** (bouton vert "New") — tu peux le laisser privé ou public.
@@ -64,15 +64,33 @@ propre clé Gemini gratuite. Pour ça, il faut la mettre en ligne gratuitement :
 6. Après quelques minutes, tu obtiens un lien du genre `https://tonapp.streamlit.app`
    — c'est CE lien que tu partages avec tes collègues.
 
-Chaque personne qui ouvre ce lien devra indiquer son prénom, **inventer un code
-d'accès personnel** (comme un mot de passe simple, pour que ses cours restent privés
-même si quelqu'un d'autre porte le même prénom), et donner **sa propre clé Gemini
-gratuite** (voir étape 1 de ce README). Une fois fait, l'appli lui propose un lien
-personnel à mettre en favori pour ne pas avoir à retaper tout ça à chaque fois.
-
-Il n'y a pas de "code oublié" : si quelqu'un perd à la fois son lien personnel et son
-code, personne (pas même toi) ne peut retrouver ses cours. Préviens-en tes clients.
-
 Ne mets jamais ta clé API dans le code que tu envoies sur GitHub — le fichier
 `.streamlit/secrets.toml` est volontairement exclu (voir `.gitignore`), c'est normal
 et voulu : l'appli hébergée n'a besoin d'aucune clé "globale", chacun apporte la sienne.
+
+Une fois en ligne, ajoute aussi un mot de passe administrateur dans les secrets de ton
+appli sur share.streamlit.io (section "Secrets" des paramètres de l'appli) :
+```toml
+ADMIN_PASSWORD = "un mot de passe que toi seul connais"
+```
+
+## 5. Vendre l'accès (codes de licence)
+
+Personne ne peut entrer dans l'appli en mode partagé sans un **code de licence**
+généré par toi. C'est ta vraie barrière de paiement — sans elle, n'importe qui pourrait
+utiliser le lien gratuitement avec sa propre clé Gemini.
+
+1. Un client te contacte et te paie (par le moyen de ton choix, en dehors de l'appli).
+2. Tu vas sur `https://tonapp.streamlit.app/Administration`, tu entres ton mot de passe
+   administrateur.
+3. Tu cliques sur **"Générer un code"** (avec une note pour te souvenir de qui c'est).
+4. Tu envoies au client : le lien de l'appli + le code généré, et tu lui rappelles
+   d'aller chercher sa propre clé Gemini gratuite (étape 1 de ce README).
+5. Le client entre son prénom, le code que tu lui as donné, et sa clé — il est alors
+   dans l'appli, avec son espace privé.
+
+Si un code fuite ou est partagé sans ton accord, tu peux le **révoquer** à tout moment
+depuis la page Administration : la personne sera bloquée dès sa prochaine visite.
+
+Il n'y a pas de "code oublié" : si un client perd à la fois son lien personnel et son
+code, il doit te recontacter pour qu'un nouveau code lui soit fourni. Préviens-en tes clients.

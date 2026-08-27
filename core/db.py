@@ -67,6 +67,15 @@ CREATE TABLE IF NOT EXISTS tentatives (
     reponses_json TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS licences (
+    code TEXT PRIMARY KEY,
+    statut TEXT NOT NULL DEFAULT 'disponible',
+    note TEXT,
+    prenom_client TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    activee_le TEXT
+);
 """
 
 
