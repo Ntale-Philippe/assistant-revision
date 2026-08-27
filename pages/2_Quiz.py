@@ -13,7 +13,7 @@ from core.quiz_service import corriger
 st.set_page_config(page_title="Quiz", layout="centered")
 init_db()
 
-pseudo, api_key = exiger_identification()
+identifiant, prenom, api_key = exiger_identification()
 
 quiz_id = st.session_state.get("quiz_id")
 phase = st.session_state.get("phase")
@@ -25,7 +25,7 @@ if not quiz_id or not phase:
     st.stop()
 
 quiz_row = repository.obtenir_quiz(quiz_id)
-if not quiz_row or not repository.obtenir_cours(quiz_row["cours_id"], pseudo):
+if not quiz_row or not repository.obtenir_cours(quiz_row["cours_id"], identifiant):
     st.error("Ce quiz n'existe pas ou ne t'appartient pas.")
     if st.button("Retour à l'accueil"):
         st.switch_page("app.py")

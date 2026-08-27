@@ -75,6 +75,17 @@ def maj_texte_extrait(document_id: int, texte: str, statut: str = "ok"):
         )
 
 
+def obtenir_document(document_id: int) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM documents WHERE id = ?", (document_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def supprimer_document(document_id: int):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM documents WHERE id = ?", (document_id,))
+
+
 def texte_complet_du_cours(cours_id: int) -> str:
     """Concatène le texte extrait de tous les documents d'un cours."""
     docs = lister_documents(cours_id)

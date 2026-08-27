@@ -1,5 +1,7 @@
 """Page d'un cours : documents, synthèse, quiz."""
 
+from pathlib import Path
+
 import streamlit as st
 
 from core import repository
@@ -14,7 +16,7 @@ from core.synthese_service import generer_et_sauver_synthese
 st.set_page_config(page_title="Mon cours", layout="centered")
 init_db()
 
-pseudo, api_key = exiger_identification()
+identifiant, prenom, api_key = exiger_identification()
 
 cours_id = st.session_state.get("cours_id")
 if not cours_id:
@@ -23,7 +25,7 @@ if not cours_id:
         st.switch_page("app.py")
     st.stop()
 
-cours = repository.obtenir_cours(cours_id, pseudo)
+cours = repository.obtenir_cours(cours_id, identifiant)
 if not cours:
     st.error("Ce cours n'existe pas ou ne t'appartient pas.")
     if st.button("Retour à l'accueil"):
@@ -85,7 +87,17 @@ with tab_docs:
         badges = {"ok": "Lu", "erreur": "Erreur", "en_attente": "En attente"}
         for doc in documents:
             statut = badges.get(doc["statut_extraction"], doc["statut_extraction"])
-            st.write(f"**{doc['nom_original']}** — {statut}")
+            col1, col2 = st.columns([5, 1])
+            with col1:
+                st.write(f"**{doc['nom_original']}** — {statut}")
+            with col2:
+                if st.button("Supprimer", key=f"suppr_doc_{doc['id']}"):
+                    try:
+                        Path(doc["chemin_stocke"]).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+                    repository.supprimer_document(doc["id"])
+                    st.rerun()
 
 # --- Onglet Synthèse -----------------------------------------------------------
 
@@ -100,7 +112,7 @@ with tab_synthese:
         if st.button(label):
             with st.spinner("L'IA lit tes documents et prépare ta fiche..."):
                 try:
-                    generer_et_sauver_synthese(cours_id, pseudo, api_key)
+                    generer_et_sauver_synthese(cours_id, identifiant, api_key)
                     st.rerun()
                 except Exception as e:
                     st.error(f"Erreur : {e}")
@@ -138,7 +150,7 @@ with tab_quiz:
             if st.button("Générer le quiz diagnostique"):
                 with st.spinner("Préparation des questions..."):
                     try:
-                        generer_quiz(cours_id, pseudo, "diagnostique", api_key)
+                        generer_quiz(cours_id, identifiant, "diagnostique", api_key)
                         st.rerun()
                     except Exception as e:
                         st.error(f"Erreur : {e}")
@@ -169,17 +181,28 @@ with tab_quiz:
 
     # --- Carte 3 : examen blanc ---
     with st.container(border=True):
-        st.markdown("#### 3. Examen blanc (chronométré)")
-        st.caption("Le quiz le plus corsé, en conditions d'examen.")
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("#### 3. Examen blanc (chronométré)")
+            st.caption("Le quiz le plus corsé, en conditions d'examen.")
         if not quiz_examen:
             if st.button("Générer l'examen blanc"):
                 with st.spinner("Préparation de l'examen blanc..."):
                     try:
-                        generer_quiz(cours_id, pseudo, "examen_blanc", api_key)
+                        generer_quiz(cours_id, identifiant, "examen_blanc", api_key)
                         st.rerun()
                     except Exception as e:
                         st.error(f"Erreur : {e}")
         else:
+            with col2:
+                if st.button("Régénérer", key="regenerer_examen"):
+                    with st.spinner("Préparation d'un nouvel examen blanc..."):
+                        try:
+                            generer_quiz(cours_id, identifiant, "examen_blanc", api_key)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erreur : {e}")
+
             if st.button("Passer l'examen blanc"):
                 st.session_state["quiz_id"] = quiz_examen["id"]
                 st.session_state["phase"] = "examen_blanc"

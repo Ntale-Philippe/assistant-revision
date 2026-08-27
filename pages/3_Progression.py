@@ -10,14 +10,14 @@ from core.db import init_db
 st.set_page_config(page_title="Progression", layout="centered")
 init_db()
 
-pseudo, api_key = exiger_identification()
+identifiant, prenom, api_key = exiger_identification()
 
 if st.button("Retour à l'accueil"):
     st.switch_page("app.py")
 
 st.title("Ma progression")
 
-cours_list = repository.lister_cours(pseudo)
+cours_list = repository.lister_cours(identifiant)
 if not cours_list:
     st.info("Aucun cours pour l'instant.")
     st.stop()
