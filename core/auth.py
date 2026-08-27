@@ -105,6 +105,8 @@ def exiger_identification() -> tuple[str, str, str]:
             else:
                 st.error("Les trois champs sont obligatoires.")
 
+    st.page_link("pages/5_Conditions.py", label="Conditions d'utilisation")
+
     st.stop()
 
 

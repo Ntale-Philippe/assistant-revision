@@ -109,3 +109,5 @@ with st.expander("Confidentialité"):
         "combinaison de ton prénom et de ton code d'accès personnel : il n'existe pas "
         "de procédure de récupération si tu perds les deux."
     )
+
+st.page_link("pages/5_Conditions.py", label="Conditions d'utilisation")
