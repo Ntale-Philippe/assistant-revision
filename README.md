@@ -64,10 +64,14 @@ propre clé Gemini gratuite. Pour ça, il faut la mettre en ligne gratuitement :
 6. Après quelques minutes, tu obtiens un lien du genre `https://tonapp.streamlit.app`
    — c'est CE lien que tu partages avec tes collègues.
 
-Chaque collègue qui ouvre ce lien devra juste indiquer son prénom et **sa propre clé
-Gemini gratuite** (voir étape 1 de ce README) — pas besoin de compte ni de mot de passe.
-Une fois fait, l'appli lui propose un lien personnel à mettre en favori pour ne pas
-avoir à retaper ça à chaque fois.
+Chaque personne qui ouvre ce lien devra indiquer son prénom, **inventer un code
+d'accès personnel** (comme un mot de passe simple, pour que ses cours restent privés
+même si quelqu'un d'autre porte le même prénom), et donner **sa propre clé Gemini
+gratuite** (voir étape 1 de ce README). Une fois fait, l'appli lui propose un lien
+personnel à mettre en favori pour ne pas avoir à retaper tout ça à chaque fois.
+
+Il n'y a pas de "code oublié" : si quelqu'un perd à la fois son lien personnel et son
+code, personne (pas même toi) ne peut retrouver ses cours. Préviens-en tes clients.
 
 Ne mets jamais ta clé API dans le code que tu envoies sur GitHub — le fichier
 `.streamlit/secrets.toml` est volontairement exclu (voir `.gitignore`), c'est normal
