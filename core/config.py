@@ -19,7 +19,13 @@ NB_QUESTIONS_EXAMEN = 15
 DUREE_EXAMEN_MINUTES = 20
 
 # Extensions de fichiers acceptées à l'upload (V1 : texte + images/PDF, audio prévu pour plus tard)
-EXTENSIONS_ACCEPTEES = ["pdf", "png", "jpg", "jpeg", "txt"]
+# Séparées en deux groupes : sur Android, mélanger images et autres fichiers dans une
+# même zone de dépôt fait parfois disparaître l'option "Fichiers" du sélecteur (bug
+# connu d'Android 14/15), ne laissant que l'appareil photo/galerie. Deux zones séparées
+# évitent le problème.
+EXTENSIONS_DOCUMENTS = ["pdf", "txt", "pptx"]
+EXTENSIONS_IMAGES = ["png", "jpg", "jpeg"]
+EXTENSIONS_ACCEPTEES = EXTENSIONS_DOCUMENTS + EXTENSIONS_IMAGES
 
 
 def get_api_key() -> str | None:

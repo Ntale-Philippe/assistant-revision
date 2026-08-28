@@ -6,3 +6,4 @@ pandas
 streamlit-autorefresh
 requests
 openpyxl
+python-pptx

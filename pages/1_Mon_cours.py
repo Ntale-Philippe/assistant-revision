@@ -7,7 +7,7 @@ import streamlit as st
 from core import repository
 from core.auth import exiger_identification
 from core.chat_service import poser_question
-from core.config import EXTENSIONS_ACCEPTEES, UPLOADS_DIR
+from core.config import EXTENSIONS_DOCUMENTS, EXTENSIONS_IMAGES, UPLOADS_DIR
 from core.db import init_db
 from core.extraction import extraire_texte, type_fichier_depuis_nom
 from core.gemini_client import GeminiNonConfigure, message_utilisateur
@@ -44,40 +44,58 @@ tab_docs, tab_synthese, tab_quiz, tab_chat = st.tabs(["Documents", "Synthèse", 
 
 # --- Onglet Documents ---------------------------------------------------------
 
+def _traiter_fichiers(fichiers):
+    dossier_cours = UPLOADS_DIR / str(cours_id)
+    dossier_cours.mkdir(parents=True, exist_ok=True)
+
+    for fichier in fichiers:
+        chemin = dossier_cours / fichier.name
+        chemin.write_bytes(fichier.getvalue())
+
+        type_fichier = type_fichier_depuis_nom(fichier.name)
+        document_id = repository.ajouter_document(
+            cours_id, fichier.name, type_fichier, str(chemin)
+        )
+
+        with st.spinner(f"Lecture de « {fichier.name} »..."):
+            try:
+                texte = extraire_texte(str(chemin), fichier.name, api_key)
+                repository.maj_texte_extrait(document_id, texte, statut="ok")
+            except GeminiNonConfigure as e:
+                repository.maj_texte_extrait(document_id, "", statut="erreur")
+                st.error(str(e))
+            except Exception as e:
+                repository.maj_texte_extrait(document_id, "", statut="erreur")
+                st.error(f"Erreur lors de la lecture de « {fichier.name} » : {message_utilisateur(e)}")
+
+    st.success("Fichiers ajoutés.")
+    st.rerun()
+
+
 with tab_docs:
     st.subheader("Déposer des documents")
-    fichiers = st.file_uploader(
-        "Notes, PDF, syllabus, articles, captures d'écran...",
-        type=EXTENSIONS_ACCEPTEES,
-        accept_multiple_files=True,
+    st.caption(
+        "Deux zones séparées (sur téléphone, ça évite un bug d'Android qui cache "
+        "l'accès aux fichiers quand on mélange documents et images)."
     )
 
-    if fichiers and st.button("Ajouter ces fichiers"):
-        dossier_cours = UPLOADS_DIR / str(cours_id)
-        dossier_cours.mkdir(parents=True, exist_ok=True)
+    documents_deposes = st.file_uploader(
+        "Documents (PDF, notes texte, PowerPoint)",
+        type=EXTENSIONS_DOCUMENTS,
+        accept_multiple_files=True,
+        key="upload_documents",
+    )
+    if documents_deposes and st.button("Ajouter ces documents"):
+        _traiter_fichiers(documents_deposes)
 
-        for fichier in fichiers:
-            chemin = dossier_cours / fichier.name
-            chemin.write_bytes(fichier.getvalue())
-
-            type_fichier = type_fichier_depuis_nom(fichier.name)
-            document_id = repository.ajouter_document(
-                cours_id, fichier.name, type_fichier, str(chemin)
-            )
-
-            with st.spinner(f"Lecture de « {fichier.name} »..."):
-                try:
-                    texte = extraire_texte(str(chemin), fichier.name, api_key)
-                    repository.maj_texte_extrait(document_id, texte, statut="ok")
-                except GeminiNonConfigure as e:
-                    repository.maj_texte_extrait(document_id, "", statut="erreur")
-                    st.error(str(e))
-                except Exception as e:
-                    repository.maj_texte_extrait(document_id, "", statut="erreur")
-                    st.error(f"Erreur lors de la lecture de « {fichier.name} » : {message_utilisateur(e)}")
-
-        st.success("Fichiers ajoutés.")
-        st.rerun()
+    images_deposees = st.file_uploader(
+        "Images (captures d'écran, photos de notes manuscrites)",
+        type=EXTENSIONS_IMAGES,
+        accept_multiple_files=True,
+        key="upload_images",
+    )
+    if images_deposees and st.button("Ajouter ces images"):
+        _traiter_fichiers(images_deposees)
 
     st.divider()
     st.subheader("Documents du cours")
