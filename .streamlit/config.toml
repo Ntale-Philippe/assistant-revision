@@ -1,3 +1,8 @@
+[client]
+# Réduit le menu ⋮ au strict minimum pour les visiteurs (pas d'options de
+# développeur type "Rerun"/"Clear cache" — inutiles et pas très "appli pro").
+toolbarMode = "minimal"
+
 [theme]
 base = "dark"
 font = "serif"
