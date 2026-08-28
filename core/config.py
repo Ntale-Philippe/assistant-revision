@@ -25,7 +25,6 @@ DUREE_EXAMEN_MINUTES = 20
 # évitent le problème.
 EXTENSIONS_DOCUMENTS = ["pdf", "txt", "pptx", "docx", "xlsx", "csv"]
 EXTENSIONS_IMAGES = ["png", "jpg", "jpeg"]
-EXTENSIONS_ACCEPTEES = EXTENSIONS_DOCUMENTS + EXTENSIONS_IMAGES
 
 
 def get_api_key() -> str | None:

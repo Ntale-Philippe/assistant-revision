@@ -11,11 +11,13 @@ from core.config import EXTENSIONS_DOCUMENTS, EXTENSIONS_IMAGES, UPLOADS_DIR
 from core.db import init_db
 from core.extraction import extraire_texte, type_fichier_depuis_nom
 from core.gemini_client import GeminiNonConfigure, message_utilisateur
+from core.navigation import afficher_navigation
 from core.quiz_service import generer_quiz
 from core.synthese_service import generer_et_sauver_synthese
 
 st.set_page_config(page_title="Mon cours", page_icon="assets/icone.png", layout="centered")
 init_db()
+afficher_navigation()
 
 identifiant, prenom, api_key = exiger_identification()
 

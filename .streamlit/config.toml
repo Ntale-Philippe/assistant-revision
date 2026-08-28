@@ -2,6 +2,9 @@
 # Réduit le menu ⋮ au strict minimum pour les visiteurs (pas d'options de
 # développeur type "Rerun"/"Clear cache" — inutiles et pas très "appli pro").
 toolbarMode = "minimal"
+# Désactive le menu automatique (qui listerait "Administration" à tout le
+# monde) : on affiche notre propre menu, page par page, sans cette entrée.
+showSidebarNavigation = false
 
 [theme]
 base = "dark"

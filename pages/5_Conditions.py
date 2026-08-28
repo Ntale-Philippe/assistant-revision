@@ -2,7 +2,10 @@
 
 import streamlit as st
 
+from core.navigation import afficher_navigation
+
 st.set_page_config(page_title="Conditions d'utilisation", page_icon="assets/icone.png", layout="centered")
+afficher_navigation()
 
 st.title("Conditions d'utilisation")
 st.caption("Dernière mise à jour : à compléter par le vendeur avant la mise en ligne.")
