@@ -8,7 +8,6 @@ st.set_page_config(page_title="Conditions d'utilisation", page_icon="assets/icon
 afficher_navigation()
 
 st.title("Conditions d'utilisation")
-st.caption("Dernière mise à jour : à compléter par le vendeur avant la mise en ligne.")
 
 st.markdown(
     """
