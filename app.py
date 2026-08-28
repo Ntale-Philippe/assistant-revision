@@ -6,7 +6,7 @@ from core import repository
 from core.auth import PROPRIETAIRE_SOLO, exiger_identification, lien_personnel, oublier_identite
 from core.db import init_db
 
-st.set_page_config(page_title="Mon assistant de révision", layout="centered")
+st.set_page_config(page_title="Mon assistant de révision", page_icon="assets/icone.png", layout="centered")
 
 init_db()
 

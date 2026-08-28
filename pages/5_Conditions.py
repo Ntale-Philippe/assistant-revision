@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-st.set_page_config(page_title="Conditions d'utilisation", layout="centered")
+st.set_page_config(page_title="Conditions d'utilisation", page_icon="assets/icone.png", layout="centered")
 
 st.title("Conditions d'utilisation")
 st.caption("Dernière mise à jour : à compléter par le vendeur avant la mise en ligne.")

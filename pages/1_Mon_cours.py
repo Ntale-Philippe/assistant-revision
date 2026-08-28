@@ -14,7 +14,7 @@ from core.gemini_client import GeminiNonConfigure, message_utilisateur
 from core.quiz_service import generer_quiz
 from core.synthese_service import generer_et_sauver_synthese
 
-st.set_page_config(page_title="Mon cours", layout="centered")
+st.set_page_config(page_title="Mon cours", page_icon="assets/icone.png", layout="centered")
 init_db()
 
 identifiant, prenom, api_key = exiger_identification()

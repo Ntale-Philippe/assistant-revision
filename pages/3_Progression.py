@@ -7,7 +7,7 @@ from core import repository
 from core.auth import exiger_identification
 from core.db import init_db
 
-st.set_page_config(page_title="Progression", layout="centered")
+st.set_page_config(page_title="Progression", page_icon="assets/icone.png", layout="centered")
 init_db()
 
 identifiant, prenom, api_key = exiger_identification()

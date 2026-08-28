@@ -13,7 +13,7 @@ from core import repository
 from core.db import init_db
 from core.export_service import generer_excel_licences
 
-st.set_page_config(page_title="Administration", layout="centered")
+st.set_page_config(page_title="Administration", page_icon="assets/icone.png", layout="centered")
 init_db()
 
 st.title("Administration")
