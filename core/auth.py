@@ -8,6 +8,13 @@ Deux modes, gérés automatiquement :
   besoin d'un code de licence valide (créé par le vendeur depuis la page Administration
   après un paiement), de son prénom, et de sa propre clé Gemini gratuite. Le code de
   licence est la vraie barrière de paiement : sans lui, impossible d'entrer.
+
+Mémorisation dans st.session_state pour toute la durée de la visite : ça évite de
+redemander l'identification à chaque changement d'onglet (Documents / Quiz /
+Progression...), puisque Streamlit ne conserve pas tout seul les paramètres d'URL
+d'une page à l'autre. Pour retrouver son espace lors d'une prochaine visite (après
+avoir fermé le navigateur), la personne réutilise son lien personnel — voir
+lien_personnel() plus bas.
 """
 
 import streamlit as st
@@ -28,6 +35,9 @@ def get_identity() -> tuple[str | None, str | None, str | None]:
     L'identifiant utilisé pour séparer les données en base est le code de licence
     lui-même (normalisé) : il est unique et attribué par le vendeur, contrairement au
     prénom qui n'est là que pour l'affichage ("Bonjour Alice")."""
+    if "identite" in st.session_state:
+        return st.session_state["identite"]
+
     moi = st.query_params.get("moi", "").strip()
     code = _normaliser_code(st.query_params.get("acces", ""))
     cle_url = st.query_params.get("cle", "").strip()
@@ -36,15 +46,19 @@ def get_identity() -> tuple[str | None, str | None, str | None]:
         licence = repository.obtenir_licence(code)
         if licence and licence["statut"] in ("disponible", "attribuee"):
             if licence["expiree"]:
-                return "expiree", moi, cle_url  # sentinelle : jamais une vraie licence
-            return code, moi, cle_url
-        return "invalide", moi, cle_url  # sentinelle : jamais une vraie licence
+                return "expiree", moi, cle_url  # sentinelle : jamais mise en cache
+            resultat = (code, moi, cle_url)
+            st.session_state["identite"] = resultat
+            return resultat
+        return "invalide", moi, cle_url  # sentinelle : jamais mise en cache
 
     if not moi:
         cle_secrets = get_api_key()
         if cle_secrets:
             # Mode solo classique : pas d'identification nécessaire.
-            return PROPRIETAIRE_SOLO, PROPRIETAIRE_SOLO, cle_secrets
+            resultat = (PROPRIETAIRE_SOLO, PROPRIETAIRE_SOLO, cle_secrets)
+            st.session_state["identite"] = resultat
+            return resultat
 
     return None, None, None
 
@@ -107,7 +121,20 @@ def exiger_identification() -> tuple[str, str, str]:
 
     st.page_link("pages/5_Conditions.py", label="Conditions d'utilisation")
 
+    st.caption(
+        "Astuce : une fois connecté, tu n'auras plus à ressaisir ça en changeant "
+        "d'onglet pendant cette visite. Pour retrouver ton espace la prochaine fois "
+        "sans tout retaper, garde ton lien personnel (affiché sur la page d'accueil "
+        "une fois connecté) en favori."
+    )
+
     st.stop()
+
+
+def oublier_identite():
+    """Efface l'identité mémorisée pour cette visite, pour changer de personne."""
+    st.session_state.pop("identite", None)
+    st.query_params.clear()
 
 
 def lien_personnel(prenom: str, code_acces: str, cle_api: str) -> str:

@@ -3,7 +3,7 @@
 import streamlit as st
 
 from core import repository
-from core.auth import PROPRIETAIRE_SOLO, exiger_identification, lien_personnel
+from core.auth import PROPRIETAIRE_SOLO, exiger_identification, lien_personnel, oublier_identite
 from core.db import init_db
 
 st.set_page_config(page_title="Mon assistant de révision", layout="centered")
@@ -22,16 +22,16 @@ if identifiant != PROPRIETAIRE_SOLO:
         st.info(f"Connecté en tant que **{prenom}**. Tes cours sont privés, personne d'autre ne les voit.")
     with col2:
         if st.button("Changer de personne"):
-            st.query_params.clear()
+            oublier_identite()
             st.rerun()
 
-    with st.expander("Mon lien personnel (à mettre en favori sur ton téléphone)"):
+    with st.expander("Mon lien personnel (à mettre en favori sur ton téléphone)", expanded=True):
         st.write(
-            "Ajoute ce lien à l'écran d'accueil de ton téléphone pour retrouver "
-            "directement ton espace, sans avoir à retaper ton prénom, ton code et ta clé :"
+            "Pendant cette visite, tu n'as plus besoin de retaper quoi que ce soit en "
+            "changeant d'onglet. Mais si tu fermes le navigateur, il te faudra ce lien "
+            "pour retrouver ton espace la prochaine fois — mets-le en favori maintenant :"
         )
-        code_acces = st.query_params.get("acces", "")
-        st.code(lien_personnel(prenom, code_acces, api_key), language=None)
+        st.code(lien_personnel(prenom, identifiant, api_key), language=None)
         st.caption(
             "Ne partage jamais ce lien précis : il contient ton code d'accès et ta clé "
             "API personnelle. Garde-le aussi de ton côté : sans lui, personne (pas même "
