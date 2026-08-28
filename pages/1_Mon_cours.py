@@ -80,7 +80,7 @@ with tab_docs:
     )
 
     documents_deposes = st.file_uploader(
-        "Documents (PDF, notes texte, PowerPoint)",
+        "Documents (PDF, Word, PowerPoint, Excel/CSV, notes texte)",
         type=EXTENSIONS_DOCUMENTS,
         accept_multiple_files=True,
         key="upload_documents",

@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pandas as pd
+from docx import Document
 from pptx import Presentation
 from pypdf import PdfReader
 
@@ -25,6 +27,10 @@ def type_fichier_depuis_nom(nom_fichier: str) -> str:
         return "pdf"
     if ext == "pptx":
         return "pptx"
+    if ext == "docx":
+        return "docx"
+    if ext in ("xlsx", "csv"):
+        return "tableur"
     if ext in MIME_PAR_EXTENSION:
         return "image"
     return "texte"
@@ -40,6 +46,13 @@ def extraire_texte(chemin_stocke: str, nom_original: str, api_key: str) -> str:
 
     if type_fichier == "pptx":
         return _extraire_texte_pptx(chemin)
+
+    if type_fichier == "docx":
+        return _extraire_texte_docx(chemin)
+
+    if type_fichier == "tableur":
+        ext = Path(nom_original).suffix.lower().lstrip(".")
+        return _extraire_texte_tableur(chemin, ext)
 
     if type_fichier == "image":
         ext = Path(nom_original).suffix.lower().lstrip(".")
@@ -91,4 +104,31 @@ def _extraire_texte_pptx(chemin: Path) -> str:
         if textes_diapo:
             morceaux.append(f"--- Diapositive {i} ---\n" + "\n".join(textes_diapo))
 
+    return "\n\n".join(morceaux)
+
+
+def _extraire_texte_docx(chemin: Path) -> str:
+    """Lit un document Word : paragraphes et tableaux, directement depuis le
+    fichier (texte natif, aucun appel à l'IA nécessaire)."""
+    document = Document(str(chemin))
+    morceaux = [p.text for p in document.paragraphs if p.text.strip()]
+
+    for tableau in document.tables:
+        for ligne in tableau.rows:
+            morceaux.append(" | ".join(cellule.text for cellule in ligne.cells))
+
+    return "\n".join(morceaux)
+
+
+def _extraire_texte_tableur(chemin: Path, ext: str) -> str:
+    """Lit un fichier Excel (.xlsx) ou CSV : transforme chaque feuille en texte
+    lisible par l'IA (pas besoin de vision, ce sont des données structurées)."""
+    if ext == "csv":
+        df = pd.read_csv(chemin)
+        return df.to_string(index=False)
+
+    feuilles = pd.read_excel(chemin, sheet_name=None)
+    morceaux = []
+    for nom_feuille, df in feuilles.items():
+        morceaux.append(f"--- Feuille : {nom_feuille} ---\n{df.to_string(index=False)}")
     return "\n\n".join(morceaux)

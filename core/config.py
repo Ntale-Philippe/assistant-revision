@@ -23,7 +23,7 @@ DUREE_EXAMEN_MINUTES = 20
 # même zone de dépôt fait parfois disparaître l'option "Fichiers" du sélecteur (bug
 # connu d'Android 14/15), ne laissant que l'appareil photo/galerie. Deux zones séparées
 # évitent le problème.
-EXTENSIONS_DOCUMENTS = ["pdf", "txt", "pptx"]
+EXTENSIONS_DOCUMENTS = ["pdf", "txt", "pptx", "docx", "xlsx", "csv"]
 EXTENSIONS_IMAGES = ["png", "jpg", "jpeg"]
 EXTENSIONS_ACCEPTEES = EXTENSIONS_DOCUMENTS + EXTENSIONS_IMAGES
 
