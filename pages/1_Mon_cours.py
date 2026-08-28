@@ -10,7 +10,7 @@ from core.chat_service import poser_question
 from core.config import EXTENSIONS_ACCEPTEES, UPLOADS_DIR
 from core.db import init_db
 from core.extraction import extraire_texte, type_fichier_depuis_nom
-from core.gemini_client import GeminiNonConfigure
+from core.gemini_client import GeminiNonConfigure, message_utilisateur
 from core.quiz_service import generer_quiz
 from core.synthese_service import generer_et_sauver_synthese
 
@@ -74,7 +74,7 @@ with tab_docs:
                     st.error(str(e))
                 except Exception as e:
                     repository.maj_texte_extrait(document_id, "", statut="erreur")
-                    st.error(f"Erreur lors de la lecture de « {fichier.name} » : {e}")
+                    st.error(f"Erreur lors de la lecture de « {fichier.name} » : {message_utilisateur(e)}")
 
         st.success("Fichiers ajoutés.")
         st.rerun()
@@ -116,7 +116,7 @@ with tab_synthese:
                     generer_et_sauver_synthese(cours_id, identifiant, api_key)
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Erreur : {e}")
+                    st.error(f"Erreur : {message_utilisateur(e)}")
 
     if not synthese:
         st.info("Pas encore de synthèse. Ajoute des documents puis clique sur « Générer ».")
@@ -154,7 +154,7 @@ with tab_quiz:
                         generer_quiz(cours_id, identifiant, "diagnostique", api_key)
                         st.rerun()
                     except Exception as e:
-                        st.error(f"Erreur : {e}")
+                        st.error(f"Erreur : {message_utilisateur(e)}")
         elif not tentative_avant:
             if st.button("Passer le quiz (avant révision)"):
                 st.session_state["quiz_id"] = quiz_diag["id"]
@@ -193,7 +193,7 @@ with tab_quiz:
                         generer_quiz(cours_id, identifiant, "examen_blanc", api_key)
                         st.rerun()
                     except Exception as e:
-                        st.error(f"Erreur : {e}")
+                        st.error(f"Erreur : {message_utilisateur(e)}")
         else:
             with col2:
                 if st.button("Régénérer", key="regenerer_examen"):
@@ -202,7 +202,7 @@ with tab_quiz:
                             generer_quiz(cours_id, identifiant, "examen_blanc", api_key)
                             st.rerun()
                         except Exception as e:
-                            st.error(f"Erreur : {e}")
+                            st.error(f"Erreur : {message_utilisateur(e)}")
 
             if st.button("Passer l'examen blanc"):
                 st.session_state["quiz_id"] = quiz_examen["id"]
@@ -245,4 +245,4 @@ with tab_chat:
                         reponse = poser_question(cours_id, identifiant, question, api_key)
                         st.markdown(reponse)
                     except Exception as e:
-                        st.error(f"Erreur : {e}")
+                        st.error(f"Erreur : {message_utilisateur(e)}")

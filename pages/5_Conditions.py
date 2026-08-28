@@ -14,6 +14,7 @@ st.markdown(
 Cette application aide à réviser un cours à partir de documents déposés par
 l'utilisateur (notes, PDF, images) : génération d'une fiche de synthèse, de quiz,
 et d'une discussion libre avec une intelligence artificielle (Google Gemini).
+Date de dernière mise à jour: 28/08/2026
 
 ### 2. Accès et compte
 
@@ -64,6 +65,6 @@ données d'un utilisateur (ex: contenu de ses cours) avant suppression de son co
 ### 8. Contact
 
 Pour toute question, réclamation ou demande de renouvellement :
-**à compléter par le vendeur (e-mail ou numéro de contact).**
++243 849721720 / assistantrevision@gmail.com
 """
 )
