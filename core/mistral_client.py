@@ -57,6 +57,12 @@ def _est_erreur_temporaire(e: Exception) -> bool:
     # en plus du texte du message.
     if "TIMEOUT" in type(e).__name__.upper():
         return True
+    if isinstance(e, json.JSONDecodeError):
+        # L'IA renvoie parfois un JSON légèrement mal formé (rare, mais ça arrive) :
+        # réessayer résout généralement le problème, la génération suivante est valide.
+        # Sans ça, l'étudiant devait recliquer lui-même sur "Générer" - trouvé en
+        # creusant pourquoi certains disaient "ça ne marche pas du premier coup".
+        return True
     texte = str(e).upper()
     return any(code in texte for code in CODES_TEMPORAIRES)
 
@@ -107,13 +113,19 @@ def generer_json(prompt: str, max_tokens: int | None = None) -> dict:
     cours, ce qui prend plus de temps à générer et augmente le risque de timeout."""
     client = _client_actif()
     kwargs = {"max_tokens": max_tokens} if max_tokens else {}
-    response = _avec_reessai(lambda: client.chat.complete(
-        model=MISTRAL_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        response_format={"type": "json_object"},
-        **kwargs,
-    ))
-    return json.loads(response.choices[0].message.content)
+
+    def appel():
+        response = client.chat.complete(
+            model=MISTRAL_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            **kwargs,
+        )
+        # Le parsing JSON fait partie de l'appel réessayé (voir _est_erreur_temporaire) :
+        # un JSON mal formé déclenche une nouvelle génération plutôt que d'échouer net.
+        return json.loads(response.choices[0].message.content)
+
+    return _avec_reessai(appel)
 
 
 def generer_texte(prompt: str) -> str:
