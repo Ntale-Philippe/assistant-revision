@@ -6,11 +6,11 @@ from core.config import (
     NB_QUESTIONS_DIAGNOSTIQUE,
     NB_QUESTIONS_EXAMEN,
 )
-from core.gemini_client import generer_json
+from core.mistral_client import generer_json
 from core.prompts import prompt_quiz
 
 
-def generer_quiz(cours_id: int, proprietaire: str, type_quiz: str, api_key: str) -> int:
+def generer_quiz(cours_id: int, proprietaire: str, type_quiz: str) -> int:
     """Génère un quiz (diagnostique ou examen_blanc) et le sauvegarde. Retourne son id."""
     cours = repository.obtenir_cours(cours_id, proprietaire)
     if not cours:
@@ -32,7 +32,7 @@ def generer_quiz(cours_id: int, proprietaire: str, type_quiz: str, api_key: str)
         duree_minutes = None
 
     prompt = prompt_quiz(cours["nom"], texte, type_quiz, nb_questions)
-    resultat = generer_json(prompt, api_key)
+    resultat = generer_json(prompt)
     questions = resultat["questions"]
 
     quiz_id = repository.creer_quiz(cours_id, type_quiz, duree_minutes)

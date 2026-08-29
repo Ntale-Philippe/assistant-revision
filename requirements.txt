@@ -1,5 +1,6 @@
 streamlit
 google-genai
+mistralai
 pypdf
 pandas
 streamlit-autorefresh

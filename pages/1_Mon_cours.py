@@ -17,13 +17,10 @@ from core.config import (
 )
 from core.db import init_db
 from core.extraction import extraire_texte, type_fichier_depuis_nom
-from core.gemini_client import (
-    GeminiNonConfigure,
-    message_utilisateur,
-    peut_reessayer,
-    signaler_echec,
-    signaler_succes,
-)
+from core.gemini_client import GeminiNonConfigure
+from core.gemini_client import message_utilisateur as message_utilisateur_gemini
+from core.gemini_client import peut_reessayer, signaler_echec, signaler_succes
+from core.mistral_client import message_utilisateur as message_utilisateur_mistral
 from core.navigation import afficher_navigation
 from core.quiz_service import generer_quiz
 from core.synthese_service import generer_et_sauver_synthese
@@ -71,34 +68,32 @@ def _etat_bouton_ia(cle: str) -> tuple[bool, int]:
 
 
 def _executer_generation_ia(cle: str, action):
-    """Exécute une génération IA, avec suivi du cooldown en cas d'échec.
+    """Exécute une génération IA (synthèse/quiz, via Mistral), avec suivi du cooldown
+    en cas d'échec.
 
     En cas de succès : efface le cooldown et rafraîchit la page.
     En cas d'échec : démarre un cooldown (pour empêcher de recliquer tout de suite,
-    ce qui aggrave un ralentissement passager côté Google) et affiche l'erreur."""
+    ce qui aggraverait un ralentissement passager) et affiche l'erreur."""
     try:
         action()
         signaler_succes(cle)
         st.rerun()
     except Exception as e:
         signaler_echec(cle)
-        st.error(f"Erreur : {message_utilisateur(e)}")
+        st.error(f"Erreur : {message_utilisateur_mistral(e)}")
 
 
 def _avertir_si_cours_volumineux():
-    """Affiche un avertissement si le cours contient beaucoup de texte.
-
-    Le plan gratuit de Google limite le nombre de *requêtes* par jour (pas la taille
-    d'une requête) : on envoie donc toujours tout le texte en un seul appel, même
-    pour un gros cours — mais un cours énorme (l'équivalent d'un manuel entier) reste
-    risqué à lui seul, d'où la suggestion de le diviser."""
+    """Affiche un avertissement si le cours contient beaucoup de texte : une seule
+    génération (tout le texte envoyé en un seul appel, jamais découpé) prendra plus
+    longtemps à répondre pour un cours énorme."""
     texte_cours = repository.texte_complet_du_cours(cours_id)
     if len(texte_cours) > SEUIL_ENORME_CARACTERES:
         st.warning(
             "Ce cours est énorme (l'équivalent d'un manuel entier) : une seule "
-            "génération peut prendre plus longtemps que d'habitude et utiliser une "
-            "bonne partie du quota IA gratuit du jour. Envisage de le diviser en "
-            "plusieurs cours plus petits (par chapitre, par exemple)."
+            "génération peut prendre nettement plus longtemps que d'habitude. "
+            "Envisage de le diviser en plusieurs cours plus petits (par chapitre, "
+            "par exemple) pour des réponses plus rapides."
         )
     elif len(texte_cours) > SEUIL_AVERTISSEMENT_CARACTERES:
         st.warning(
@@ -131,7 +126,7 @@ def _traiter_fichiers(fichiers):
                 st.error(str(e))
             except Exception as e:
                 repository.maj_texte_extrait(document_id, "", statut="erreur")
-                st.error(f"Erreur lors de la lecture de « {fichier.name} » : {message_utilisateur(e)}")
+                st.error(f"Erreur lors de la lecture de « {fichier.name} » : {message_utilisateur_gemini(e)}")
 
     st.success("Fichiers ajoutés.")
     st.rerun()
@@ -200,7 +195,7 @@ with tab_synthese:
             with st.spinner("L'IA lit tes documents et prépare ta fiche..."):
                 _executer_generation_ia(
                     cle_cooldown,
-                    lambda: generer_et_sauver_synthese(cours_id, identifiant, api_key),
+                    lambda: generer_et_sauver_synthese(cours_id, identifiant),
                 )
     if not peut:
         st.caption(f"Patiente {restant}s avant de recliquer (évite d'aggraver un ralentissement de l'IA).")
@@ -242,7 +237,7 @@ with tab_quiz:
                 with st.spinner("Préparation des questions..."):
                     _executer_generation_ia(
                         cle_cooldown,
-                        lambda: generer_quiz(cours_id, identifiant, "diagnostique", api_key),
+                        lambda: generer_quiz(cours_id, identifiant, "diagnostique"),
                     )
             if not peut:
                 st.caption(f"Patiente {restant}s avant de recliquer.")
@@ -284,7 +279,7 @@ with tab_quiz:
                 with st.spinner("Préparation de l'examen blanc..."):
                     _executer_generation_ia(
                         cle_cooldown,
-                        lambda: generer_quiz(cours_id, identifiant, "examen_blanc", api_key),
+                        lambda: generer_quiz(cours_id, identifiant, "examen_blanc"),
                     )
             if not peut:
                 st.caption(f"Patiente {restant}s avant de recliquer.")
@@ -294,7 +289,7 @@ with tab_quiz:
                     with st.spinner("Préparation d'un nouvel examen blanc..."):
                         _executer_generation_ia(
                             cle_cooldown,
-                            lambda: generer_quiz(cours_id, identifiant, "examen_blanc", api_key),
+                            lambda: generer_quiz(cours_id, identifiant, "examen_blanc"),
                         )
             if not peut:
                 st.caption(f"Patiente {restant}s avant de recliquer.")
@@ -337,7 +332,7 @@ with tab_chat:
             with st.chat_message("assistant"):
                 with st.spinner("Réflexion..."):
                     try:
-                        reponse = poser_question(cours_id, identifiant, question, api_key)
+                        reponse = poser_question(cours_id, identifiant, question)
                         st.markdown(reponse)
                     except Exception as e:
-                        st.error(f"Erreur : {message_utilisateur(e)}")
+                        st.error(f"Erreur : {message_utilisateur_mistral(e)}")

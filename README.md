@@ -4,29 +4,50 @@ Une petite application qui lit tes notes de cours (PDF, images, texte), te fait 
 fiche de synthèse, et te teste avec 3 quiz : un avant révision, le même après (pour
 voir ta progression), et un examen blanc chronométré.
 
-**Personne d'autre que toi (le propriétaire de l'appli) n'a besoin de créer une clé
-Gemini.** Les étudiants qui utilisent l'appli n'ont qu'un prénom et un mot de passe
-personnel à inventer — l'appli utilise en coulisses une seule clé Gemini que tu
-configures une fois pour toutes.
+**Personne d'autre que toi (le propriétaire de l'appli) n'a besoin de créer la moindre
+clé.** Les étudiants qui utilisent l'appli n'ont qu'un prénom et un mot de passe
+personnel à inventer — l'appli utilise en coulisses deux IA que tu configures une
+fois pour toutes.
 
-## 1. Récupérer ta clé Gemini gratuite (une seule fois, pour toi)
+## Pourquoi deux IA différentes ?
 
+- **Mistral** génère la synthèse, les quiz et répond dans le chat (l'essentiel de
+  l'usage). Son plan gratuit est généreux (environ 1 milliard de mots par mois) et ne
+  demande aucune carte bancaire.
+- **Gemini** sert uniquement à lire les images et les PDF scannés (OCR) — un usage
+  rare, donc son plan gratuit (limité) suffit largement pour ça seulement.
+
+(Groq a été essayé pour remplacer Gemini côté texte, mais bloque le trafic venant de
+serveurs cloud comme celui qui héberge l'appli une fois en ligne — abandonné, voir
+l'historique Git si besoin de retenter un jour avec un contournement.)
+
+## 1. Récupérer tes deux clés gratuites (une seule fois, pour toi)
+
+**Clé Mistral :**
+1. Va sur https://console.mistral.ai, crée un compte (email ou Google)
+2. Va dans **"API Keys"**, clique sur **"Create new key"**, copie la clé
+
+**Clé Gemini :**
 1. Va sur https://aistudio.google.com/apikey
 2. Connecte-toi avec ton compte Google
 3. Clique sur **"Create API key"** → **"Create API key in new project"**
 4. Copie la clé qui apparaît
-5. Ouvre le fichier `.streamlit/secrets.toml` dans ce dossier et colle ta clé à deux
-   endroits (voir pourquoi juste en dessous) :
-   ```toml
-   GEMINI_API_KEY = "AIzaSyABCDEF1234567890"
-   SHARED_GEMINI_API_KEY = "AIzaSyABCDEF1234567890"
-   ```
-6. Enregistre le fichier. C'est tout, tu ne referas ça qu'une seule fois.
 
-Pourquoi deux lignes avec la même clé ? `GEMINI_API_KEY` sert uniquement quand **toi**
-tu lances l'appli sur ton PC (mode solo, aucune identification demandée).
-`SHARED_GEMINI_API_KEY` est celle utilisée par **tous les étudiants** une fois l'appli
-en ligne. Elles peuvent être identiques, ou différentes si tu veux séparer ton usage
+**Puis**, ouvre le fichier `.streamlit/secrets.toml` dans ce dossier et colle tes deux
+clés (chacune à deux endroits, voir pourquoi juste en dessous) :
+```toml
+MISTRAL_API_KEY = "ta-cle-mistral-ici"
+SHARED_MISTRAL_API_KEY = "ta-cle-mistral-ici"
+
+GEMINI_API_KEY = "ta-cle-gemini-ici"
+SHARED_GEMINI_API_KEY = "ta-cle-gemini-ici"
+```
+Enregistre le fichier. C'est tout, tu ne referas ça qu'une seule fois.
+
+Pourquoi deux lignes par clé ? La version sans `SHARED_` sert uniquement quand **toi**
+tu lances l'appli sur ton PC (mode solo, aucune identification demandée). La version
+`SHARED_` est celle utilisée par **tous les étudiants** une fois l'appli en ligne.
+Elles peuvent être identiques (comme ici), ou différentes si tu veux séparer ton usage
 perso de celui des étudiants.
 
 Ne partage jamais ces clés (ne les envoie pas par mail, ne les mets pas sur internet).
@@ -113,15 +134,16 @@ Ne mets jamais tes clés dans le code que tu envoies sur GitHub — le fichier
 Une fois en ligne, ajoute dans les secrets de ton appli sur share.streamlit.io (section
 "Secrets" des paramètres de l'appli) :
 ```toml
+SHARED_MISTRAL_API_KEY = "ta-cle-mistral-ici"
 SHARED_GEMINI_API_KEY = "ta-cle-gemini-ici"
 TURSO_DATABASE_URL = "libsql://ton-nom-de-base.turso.io"
 TURSO_AUTH_TOKEN = "ton-jeton-ici"
 ```
 
-⚠️ Ne mets **jamais** `GEMINI_API_KEY` (sans le préfixe SHARED_) dans les secrets de
-l'appli en ligne : ça donnerait à n'importe quel visiteur anonyme un accès "solo"
-instantané, sans passer par l'écran d'identification, et il verrait potentiellement
-tes propres cours de test. Utilise bien le nom `SHARED_GEMINI_API_KEY` en ligne.
+⚠️ Ne mets **jamais** `MISTRAL_API_KEY`/`GEMINI_API_KEY` (sans le préfixe SHARED_) dans
+les secrets de l'appli en ligne : ça donnerait à n'importe quel visiteur anonyme un
+accès "solo" instantané, sans passer par l'écran d'identification, et il verrait
+potentiellement tes propres cours de test. Utilise bien les noms `SHARED_...` en ligne.
 
 ## 6. Remettre un modèle payant plus tard
 

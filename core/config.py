@@ -61,6 +61,24 @@ def get_shared_api_key() -> str | None:
         return None
 
 
+def get_mistral_api_key() -> str | None:
+    """Clé Mistral pour l'usage solo, en local sur ton PC (secrets.toml local)."""
+    try:
+        return st.secrets["MISTRAL_API_KEY"]
+    except Exception:
+        return None
+
+
+def get_shared_mistral_api_key() -> str | None:
+    """Clé Mistral utilisée pour TOUS les visiteurs de l'appli hébergée. Mistral gère
+    la synthèse, les quiz et le chat (texte) : quota gratuit bien plus généreux que
+    Gemini, et aucune carte bancaire nécessaire."""
+    try:
+        return st.secrets["SHARED_MISTRAL_API_KEY"]
+    except Exception:
+        return None
+
+
 def ensure_dirs():
     """Crée les dossiers de données s'ils n'existent pas encore."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)

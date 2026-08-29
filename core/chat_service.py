@@ -1,11 +1,11 @@
 """Orchestration de la discussion libre sur un cours."""
 
 from core import repository
-from core.gemini_client import repondre_chat
+from core.mistral_client import repondre_chat
 from core.prompts import prompt_contexte_chat
 
 
-def poser_question(cours_id: int, proprietaire: str, question: str, api_key: str) -> str:
+def poser_question(cours_id: int, proprietaire: str, question: str) -> str:
     cours = repository.obtenir_cours(cours_id, proprietaire)
     if not cours:
         raise ValueError("Ce cours n'existe pas ou ne t'appartient pas.")
@@ -23,7 +23,7 @@ def poser_question(cours_id: int, proprietaire: str, question: str, api_key: str
     ]
 
     contexte = prompt_contexte_chat(cours["nom"], texte)
-    reponse = repondre_chat(contexte, historique, question, api_key)
+    reponse = repondre_chat(contexte, historique, question)
 
     repository.ajouter_message_chat(cours_id, "utilisateur", question)
     repository.ajouter_message_chat(cours_id, "assistant", reponse)
