@@ -127,32 +127,79 @@ def _avertir_si_cours_volumineux():
 
 # --- Onglet Documents ---------------------------------------------------------
 
-def _traiter_fichiers(fichiers, categorie="cours"):
+def _sauver_fichier_sur_disque(nom: str, contenu: bytes) -> str:
     dossier_cours = UPLOADS_DIR / str(cours_id)
     dossier_cours.mkdir(parents=True, exist_ok=True)
+    chemin = dossier_cours / nom
+    chemin.write_bytes(contenu)
+    return str(chemin)
+
+
+def _extraire_et_sauver_texte(document_id: int, chemin: str, nom: str):
+    with st.spinner(f"Lecture de « {nom} »..."):
+        try:
+            texte = extraire_texte(chemin, nom, api_key)
+            repository.maj_texte_extrait(document_id, texte, statut="ok")
+        except GeminiNonConfigure as e:
+            repository.maj_texte_extrait(document_id, "", statut="erreur")
+            st.error(str(e))
+        except Exception as e:
+            repository.maj_texte_extrait(document_id, "", statut="erreur")
+            st.error(f"Erreur lors de la lecture de « {nom} » : {message_utilisateur_gemini(e)}")
+
+
+def _traiter_fichiers(fichiers, categorie="cours"):
+    """Ajoute les fichiers, mais si un document du même nom existe déjà dans ce
+    cours, ne l'écrase pas silencieusement : le met de côté et demande à
+    l'utilisateur (via _afficher_doublons_en_attente) s'il veut le remplacer ou
+    annuler cet ajout précis."""
+    cle_doublons = f"doublons_{categorie}"
+    doublons_en_attente = st.session_state.setdefault(cle_doublons, [])
+    nouveaux_traites = False
 
     for fichier in fichiers:
-        chemin = dossier_cours / fichier.name
-        chemin.write_bytes(fichier.getvalue())
+        existant = repository.obtenir_document_par_nom(cours_id, fichier.name, categorie)
+        if existant:
+            if not any(d["nom"] == fichier.name for d in doublons_en_attente):
+                doublons_en_attente.append({
+                    "nom": fichier.name,
+                    "contenu": fichier.getvalue(),
+                    "document_id": existant["id"],
+                })
+            continue
 
+        chemin = _sauver_fichier_sur_disque(fichier.name, fichier.getvalue())
         type_fichier = type_fichier_depuis_nom(fichier.name)
-        document_id = repository.ajouter_document(
-            cours_id, fichier.name, type_fichier, str(chemin), categorie=categorie
-        )
+        document_id = repository.ajouter_document(cours_id, fichier.name, type_fichier, chemin, categorie=categorie)
+        _extraire_et_sauver_texte(document_id, chemin, fichier.name)
+        nouveaux_traites = True
 
-        with st.spinner(f"Lecture de « {fichier.name} »..."):
-            try:
-                texte = extraire_texte(str(chemin), fichier.name, api_key)
-                repository.maj_texte_extrait(document_id, texte, statut="ok")
-            except GeminiNonConfigure as e:
-                repository.maj_texte_extrait(document_id, "", statut="erreur")
-                st.error(str(e))
-            except Exception as e:
-                repository.maj_texte_extrait(document_id, "", statut="erreur")
-                st.error(f"Erreur lors de la lecture de « {fichier.name} » : {message_utilisateur_gemini(e)}")
-
-    st.success("Fichiers ajoutés.")
+    if nouveaux_traites:
+        st.success("Fichiers ajoutés.")
     st.rerun()
+
+
+def _afficher_doublons_en_attente(categorie="cours"):
+    """Affiche, pour chaque fichier mis de côté par _traiter_fichiers car un
+    document du même nom existe déjà, un choix explicite : remplacer le document
+    existant (relit le nouveau fichier) ou annuler cet ajout (ne touche à rien)."""
+    cle_doublons = f"doublons_{categorie}"
+    doublons = st.session_state.get(cle_doublons, [])
+    for d in list(doublons):
+        st.warning(f"Le document « {d['nom']} » est déjà dans ton cours. Que veux-tu faire ?")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Remplacer le fichier existant", key=f"remplacer_{categorie}_{d['nom']}"):
+                chemin = _sauver_fichier_sur_disque(d["nom"], d["contenu"])
+                _extraire_et_sauver_texte(d["document_id"], chemin, d["nom"])
+                doublons.remove(d)
+                st.session_state[cle_doublons] = doublons
+                st.rerun()
+        with col2:
+            if st.button("Annuler cet ajout", key=f"annuler_{categorie}_{d['nom']}"):
+                doublons.remove(d)
+                st.session_state[cle_doublons] = doublons
+                st.rerun()
 
 
 with tab_docs:
@@ -180,6 +227,8 @@ with tab_docs:
     if images_deposees and st.button("Ajouter ces images"):
         _traiter_fichiers(images_deposees)
 
+    _afficher_doublons_en_attente("cours")
+
     st.divider()
     with st.expander("Anciens examens (facultatif)"):
         st.caption(
@@ -205,6 +254,8 @@ with tab_docs:
         )
         if examens_images and st.button("Ajouter ces examens (images)"):
             _traiter_fichiers(examens_images, categorie="examen_passe")
+
+        _afficher_doublons_en_attente("examen_passe")
 
     st.divider()
     st.subheader("Documents du cours")

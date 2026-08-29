@@ -54,25 +54,29 @@ def ajouter_document(cours_id: int, nom_original: str, type_fichier: str, chemin
     """`categorie` : 'cours' (notes normales, par défaut) ou 'examen_passe' (ancien
     examen déposé comme référence — jamais mélangé au contenu du cours).
 
-    Idempotent : si un document du même nom existe déjà pour ce cours (dans la même
-    catégorie), renvoie son id existant au lieu d'en créer un doublon — évite les
-    doublons quand quelqu'un reclique sur "Ajouter" en pensant que ça n'a pas marché
-    (constaté en vrai : un document présent 3 fois pour le même cours)."""
+    Crée toujours un nouveau document — voir obtenir_document_par_nom() pour
+    détecter un doublon *avant* d'appeler cette fonction et demander à
+    l'utilisateur s'il veut remplacer ou annuler, plutôt que d'en créer un
+    deuxième silencieusement."""
     with get_connection() as conn:
-        existant = conn.execute(
-            """SELECT id FROM documents WHERE cours_id = ? AND nom_original = ? AND categorie = ?
-               ORDER BY created_at DESC LIMIT 1""",
-            (cours_id, nom_original, categorie),
-        ).fetchone()
-        if existant:
-            return existant["id"]
-
         cur = conn.execute(
             """INSERT INTO documents (cours_id, nom_original, type_fichier, chemin_stocke, categorie)
                VALUES (?, ?, ?, ?, ?)""",
             (cours_id, nom_original, type_fichier, chemin_stocke, categorie),
         )
         return cur.lastrowid
+
+
+def obtenir_document_par_nom(cours_id: int, nom_original: str, categorie: str) -> dict | None:
+    """Cherche un document existant du même nom (et catégorie) pour ce cours —
+    utilisé pour détecter un doublon avant d'ajouter un nouveau fichier."""
+    with get_connection() as conn:
+        row = conn.execute(
+            """SELECT * FROM documents WHERE cours_id = ? AND nom_original = ? AND categorie = ?
+               ORDER BY created_at DESC LIMIT 1""",
+            (cours_id, nom_original, categorie),
+        ).fetchone()
+        return dict(row) if row else None
 
 
 def lister_documents(cours_id: int) -> list[dict]:
