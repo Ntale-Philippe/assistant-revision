@@ -135,6 +135,10 @@ CREATE TABLE IF NOT EXISTS documents (
     chemin_stocke TEXT NOT NULL,
     texte_extrait TEXT,
     statut_extraction TEXT DEFAULT 'en_attente',
+    -- 'cours' (notes normales) ou 'examen_passe' (ancien examen déposé par
+    -- l'étudiant, utilisé comme référence pour les notions probables et le style
+    -- des quiz, mais jamais mélangé au contenu du cours lui-même).
+    categorie TEXT NOT NULL DEFAULT 'cours',
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -165,7 +169,13 @@ CREATE TABLE IF NOT EXISTS questions (
     enonce TEXT NOT NULL,
     choix_json TEXT NOT NULL,
     bonne_reponse_index INTEGER NOT NULL,
-    explication TEXT
+    explication TEXT,
+    -- 'choix_multiple' (les 3 quiz habituels) ou 'ecrite' (réponse libre, corrigée
+    -- par l'IA en comparant à reponse_modele). choix_json/bonne_reponse_index
+    -- restent renseignés (avec des valeurs vides/-1) pour les questions écrites,
+    -- pour ne pas avoir à assouplir les contraintes NOT NULL sur une base déjà en ligne.
+    type_question TEXT NOT NULL DEFAULT 'choix_multiple',
+    reponse_modele TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tentatives (
@@ -176,6 +186,9 @@ CREATE TABLE IF NOT EXISTS tentatives (
     score_max INTEGER NOT NULL,
     duree_secondes INTEGER,
     reponses_json TEXT,
+    -- Détail par question pour les questions à réponse écrite (feedback de l'IA) :
+    -- une liste de {"correcte": bool, "commentaire": str}, dans l'ordre des questions.
+    details_json TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -221,6 +234,20 @@ def _migrer_si_besoin(conn):
     colonnes = {row["name"] for row in conn.execute("PRAGMA table_info(cours)").fetchall()}
     if "proprietaire" not in colonnes:
         conn.execute("ALTER TABLE cours ADD COLUMN proprietaire TEXT NOT NULL DEFAULT 'moi'")
+
+    colonnes_documents = {row["name"] for row in conn.execute("PRAGMA table_info(documents)").fetchall()}
+    if "categorie" not in colonnes_documents:
+        conn.execute("ALTER TABLE documents ADD COLUMN categorie TEXT NOT NULL DEFAULT 'cours'")
+
+    colonnes_questions = {row["name"] for row in conn.execute("PRAGMA table_info(questions)").fetchall()}
+    if "type_question" not in colonnes_questions:
+        conn.execute("ALTER TABLE questions ADD COLUMN type_question TEXT NOT NULL DEFAULT 'choix_multiple'")
+    if "reponse_modele" not in colonnes_questions:
+        conn.execute("ALTER TABLE questions ADD COLUMN reponse_modele TEXT")
+
+    colonnes_tentatives = {row["name"] for row in conn.execute("PRAGMA table_info(tentatives)").fetchall()}
+    if "details_json" not in colonnes_tentatives:
+        conn.execute("ALTER TABLE tentatives ADD COLUMN details_json TEXT")
 
     colonnes_licences = {row["name"] for row in conn.execute("PRAGMA table_info(licences)").fetchall()}
     if "expire_le" not in colonnes_licences:

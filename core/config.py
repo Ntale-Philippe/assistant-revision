@@ -20,6 +20,7 @@ IDENTIFIANT_DEMO = "demo-public"
 NB_QUESTIONS_DIAGNOSTIQUE = 8
 NB_QUESTIONS_EXAMEN = 15
 DUREE_EXAMEN_MINUTES = 20
+NB_QUESTIONS_ECRIT = 5
 
 # Seuils pour les gros cours (beaucoup de documents, ou documents très longs).
 # Important : on envoie TOUJOURS tout le texte en un seul appel à l'IA (jamais

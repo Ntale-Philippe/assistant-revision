@@ -23,7 +23,7 @@ from core.gemini_client import message_utilisateur as message_utilisateur_gemini
 from core.gemini_client import peut_reessayer, signaler_echec, signaler_succes
 from core.mistral_client import message_utilisateur as message_utilisateur_mistral
 from core.navigation import afficher_navigation
-from core.quiz_service import generer_quiz
+from core.quiz_service import generer_quiz, generer_quiz_ecrit
 from core.synthese_service import generer_et_sauver_synthese
 
 st.set_page_config(page_title="Mon cours", page_icon="assets/icone.png", layout="centered")
@@ -127,7 +127,7 @@ def _avertir_si_cours_volumineux():
 
 # --- Onglet Documents ---------------------------------------------------------
 
-def _traiter_fichiers(fichiers):
+def _traiter_fichiers(fichiers, categorie="cours"):
     dossier_cours = UPLOADS_DIR / str(cours_id)
     dossier_cours.mkdir(parents=True, exist_ok=True)
 
@@ -137,7 +137,7 @@ def _traiter_fichiers(fichiers):
 
         type_fichier = type_fichier_depuis_nom(fichier.name)
         document_id = repository.ajouter_document(
-            cours_id, fichier.name, type_fichier, str(chemin)
+            cours_id, fichier.name, type_fichier, str(chemin), categorie=categorie
         )
 
         with st.spinner(f"Lecture de « {fichier.name} »..."):
@@ -181,6 +181,32 @@ with tab_docs:
         _traiter_fichiers(images_deposees)
 
     st.divider()
+    st.subheader("Anciens examens (facultatif)")
+    st.caption(
+        "Dépose ici de vrais anciens examens de ce cours, si tu en as : l'IA s'en "
+        "sert en priorité pour deviner les vraies notions probables et pour "
+        "composer des quiz dans le style de ton professeur. Ils ne sont jamais "
+        "mélangés au contenu du cours lui-même."
+    )
+    examens_documents = st.file_uploader(
+        "Anciens examens — documents",
+        type=EXTENSIONS_DOCUMENTS,
+        accept_multiple_files=True,
+        key="upload_examens_documents",
+    )
+    if examens_documents and st.button("Ajouter ces examens (documents)"):
+        _traiter_fichiers(examens_documents, categorie="examen_passe")
+
+    examens_images = st.file_uploader(
+        "Anciens examens — images (photos de sujets papier)",
+        type=EXTENSIONS_IMAGES,
+        accept_multiple_files=True,
+        key="upload_examens_images",
+    )
+    if examens_images and st.button("Ajouter ces examens (images)"):
+        _traiter_fichiers(examens_images, categorie="examen_passe")
+
+    st.divider()
     st.subheader("Documents du cours")
     documents = repository.lister_documents(cours_id)
     if not documents:
@@ -189,9 +215,10 @@ with tab_docs:
         badges = {"ok": "Lu", "erreur": "Erreur", "en_attente": "En attente"}
         for doc in documents:
             statut = badges.get(doc["statut_extraction"], doc["statut_extraction"])
+            etiquette = " · ancien examen" if doc.get("categorie") == "examen_passe" else ""
             col1, col2 = st.columns([5, 1])
             with col1:
-                st.write(f"**{doc['nom_original']}** — {statut}")
+                st.write(f"**{doc['nom_original']}** — {statut}{etiquette}")
             with col2:
                 if st.button("Supprimer", key=f"suppr_doc_{doc['id']}"):
                     try:
@@ -239,11 +266,12 @@ with tab_synthese:
 # --- Onglet Quiz -----------------------------------------------------------------
 
 with tab_quiz:
-    st.subheader("Tes 3 quiz")
+    st.subheader("Tes modes de révision")
     _avertir_si_cours_volumineux()
 
     quiz_diag = repository.obtenir_quiz_par_type(cours_id, "diagnostique")
     quiz_examen = repository.obtenir_quiz_par_type(cours_id, "examen_blanc")
+    quiz_ecrit = repository.obtenir_quiz_par_type(cours_id, "reponse_ecrite")
 
     tentative_avant = repository.derniere_tentative(quiz_diag["id"], "avant") if quiz_diag else None
     tentative_apres = repository.derniere_tentative(quiz_diag["id"], "apres") if quiz_diag else None
@@ -320,6 +348,43 @@ with tab_quiz:
             tentatives_examen = repository.lister_tentatives(quiz_examen["id"])
             if tentatives_examen:
                 derniere = tentatives_examen[-1]
+                st.caption(f"Dernier score : {derniere['score']} / {derniere['score_max']}")
+
+    # --- Carte 4 : questions à réponse écrite ---
+    with st.container(border=True):
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("#### 4. Questions à réponse écrite (entraînement)")
+            st.caption(
+                "Rédige tes réponses au lieu de choisir — corrigé par l'IA. "
+                "Pour t'entraîner, ne compte pas dans ta progression."
+            )
+        cle_cooldown = f"quiz_ecrit_{cours_id}"
+        peut, restant = _etat_bouton_ia(cle_cooldown)
+        if not quiz_ecrit:
+            if st.button("Générer les questions", disabled=not peut):
+                with st.spinner("Préparation des questions..."):
+                    _executer_generation_ia(
+                        cle_cooldown,
+                        lambda: generer_quiz_ecrit(cours_id, identifiant),
+                    )
+            _afficher_cooldown(cle_cooldown, peut, restant)
+        else:
+            with col2:
+                if st.button("Régénérer", key="regenerer_ecrit", disabled=not peut):
+                    with st.spinner("Préparation de nouvelles questions..."):
+                        _executer_generation_ia(
+                            cle_cooldown,
+                            lambda: generer_quiz_ecrit(cours_id, identifiant),
+                        )
+            _afficher_cooldown(cle_cooldown, peut, restant)
+
+            if st.button("S'entraîner"):
+                st.session_state["quiz_ecrit_id"] = quiz_ecrit["id"]
+                st.switch_page("pages/7_Questions_ecrites.py")
+            tentatives_ecrit = repository.lister_tentatives(quiz_ecrit["id"])
+            if tentatives_ecrit:
+                derniere = tentatives_ecrit[-1]
                 st.caption(f"Dernier score : {derniere['score']} / {derniere['score_max']}")
 
 # --- Onglet Discussion -------------------------------------------------------

@@ -8,10 +8,19 @@ from core.prompts import prompt_synthese
 
 def _en_markdown(valeur) -> str:
     """L'IA répond parfois avec une liste au lieu d'une chaîne de texte pour une
-    section (ex: fun_facts) : on la remet en forme en liste à puces Markdown plutôt
-    que de planter à l'affichage."""
+    section (ex: fun_facts, notions_examen) : on la remet en forme en liste à puces
+    Markdown plutôt que d'afficher du JSON brut illisible. Les éléments de la liste
+    sont parfois eux-mêmes des objets détaillés (ex: {"concept": ..., "justification":
+    ...}) plutôt que du texte simple — peu importe les noms de clés exacts (ça varie
+    d'une génération à l'autre), on recolle juste leurs valeurs en une ligne lisible."""
     if isinstance(valeur, list):
-        return "\n".join(f"- {item}" for item in valeur)
+        lignes = []
+        for item in valeur:
+            if isinstance(item, dict):
+                lignes.append(f"- {' — '.join(str(v) for v in item.values() if v)}")
+            else:
+                lignes.append(f"- {item}")
+        return "\n".join(lignes)
     return str(valeur)
 
 
@@ -39,7 +48,8 @@ def generer_et_sauver_synthese(cours_id: int, proprietaire: str) -> dict:
             "plus petits (par chapitre, par exemple) — réessayer ne suffira pas."
         )
 
-    prompt = prompt_synthese(cours["nom"], texte)
+    examens_passes = repository.texte_examens_passes(cours_id)
+    prompt = prompt_synthese(cours["nom"], texte, examens_passes)
     # Borne la longueur de la réponse : sans ça, la section "synthese" (ouverte, pas
     # de nombre fixe comme les questions de quiz) peut partir sur une réponse très
     # longue pour un gros cours, ce qui prend plus de temps et augmente le risque de

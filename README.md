@@ -67,11 +67,16 @@ retourne dans le terminal et appuie sur `Ctrl + C`.
 
 1. Crée un cours (n'importe quelle matière : droit, économie, ingénierie, lettres...)
 2. Dépose tes documents (PDF, captures d'écran, notes texte)
-3. Génère la fiche de synthèse
-4. Passe le quiz diagnostique (avant révision)
-5. Révise avec ta fiche de synthèse
-6. Repasse le même quiz (après révision) et regarde ta progression
-7. Teste-toi en conditions réelles avec l'examen blanc chronométré
+3. (Facultatif) Dépose aussi d'anciens examens de ce cours si tu en as : l'IA s'en
+   sert en priorité pour deviner les vraies notions probables et composer des quiz
+   dans le style de ton professeur
+4. Génère la fiche de synthèse
+5. Passe le quiz diagnostique (avant révision)
+6. Révise avec ta fiche de synthèse
+7. Repasse le même quiz (après révision) et regarde ta progression
+8. Teste-toi en conditions réelles avec l'examen blanc chronométré
+9. Entraîne-toi aussi avec les questions à réponse écrite (rédigées, corrigées par
+   l'IA) — un 4ᵉ mode d'entraînement, séparé des 3 quiz ci-dessus
 
 Toutes tes données (cours, documents, scores) restent uniquement sur ton ordinateur,
 dans le dossier `data/`. Une page `/Demo` (accessible sans identification) montre un

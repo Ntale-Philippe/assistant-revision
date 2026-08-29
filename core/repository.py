@@ -49,12 +49,15 @@ def supprimer_cours(cours_id: int, proprietaire: str):
 
 # --- Documents ---------------------------------------------------------------
 
-def ajouter_document(cours_id: int, nom_original: str, type_fichier: str, chemin_stocke: str) -> int:
+def ajouter_document(cours_id: int, nom_original: str, type_fichier: str, chemin_stocke: str,
+                      categorie: str = "cours") -> int:
+    """`categorie` : 'cours' (notes normales, par défaut) ou 'examen_passe' (ancien
+    examen déposé comme référence — jamais mélangé au contenu du cours)."""
     with get_connection() as conn:
         cur = conn.execute(
-            """INSERT INTO documents (cours_id, nom_original, type_fichier, chemin_stocke)
-               VALUES (?, ?, ?, ?)""",
-            (cours_id, nom_original, type_fichier, chemin_stocke),
+            """INSERT INTO documents (cours_id, nom_original, type_fichier, chemin_stocke, categorie)
+               VALUES (?, ?, ?, ?, ?)""",
+            (cours_id, nom_original, type_fichier, chemin_stocke, categorie),
         )
         return cur.lastrowid
 
@@ -81,12 +84,25 @@ def supprimer_document(document_id: int):
 
 
 def texte_complet_du_cours(cours_id: int) -> str:
-    """Concatène le texte extrait de tous les documents d'un cours."""
+    """Concatène le texte extrait des documents de *cours* (pas les anciens examens,
+    voir texte_examens_passes)."""
     docs = lister_documents(cours_id)
     morceaux = [
         f"--- Document : {d['nom_original']} ---\n{d['texte_extrait']}"
         for d in docs
-        if d.get("texte_extrait")
+        if d.get("texte_extrait") and d.get("categorie", "cours") == "cours"
+    ]
+    return "\n\n".join(morceaux)
+
+
+def texte_examens_passes(cours_id: int) -> str:
+    """Concatène le texte extrait des anciens examens déposés pour ce cours (vide
+    si l'étudiant n'en a pas déposé)."""
+    docs = lister_documents(cours_id)
+    morceaux = [
+        f"--- Ancien examen : {d['nom_original']} ---\n{d['texte_extrait']}"
+        for d in docs
+        if d.get("texte_extrait") and d.get("categorie") == "examen_passe"
     ]
     return "\n\n".join(morceaux)
 
@@ -132,12 +148,16 @@ def creer_quiz(cours_id: int, type_quiz: str, duree_minutes: int | None = None) 
 
 
 def ajouter_question(quiz_id: int, ordre: int, enonce: str, choix: list[str],
-                      bonne_reponse_index: int, explication: str = ""):
+                      bonne_reponse_index: int, explication: str = "",
+                      type_question: str = "choix_multiple", reponse_modele: str | None = None):
     with get_connection() as conn:
         conn.execute(
-            """INSERT INTO questions (quiz_id, ordre, enonce, choix_json, bonne_reponse_index, explication)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (quiz_id, ordre, enonce, json.dumps(choix, ensure_ascii=False), bonne_reponse_index, explication),
+            """INSERT INTO questions
+               (quiz_id, ordre, enonce, choix_json, bonne_reponse_index, explication,
+                type_question, reponse_modele)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (quiz_id, ordre, enonce, json.dumps(choix, ensure_ascii=False), bonne_reponse_index,
+             explication, type_question, reponse_modele),
         )
 
 
@@ -172,12 +192,16 @@ def lister_questions(quiz_id: int) -> list[dict]:
 # --- Tentatives (résultats de quiz) ----------------------------------------
 
 def sauver_tentative(quiz_id: int, phase: str, score: int, score_max: int,
-                      duree_secondes: int | None, reponses: list[int]) -> int:
+                      duree_secondes: int | None, reponses: list, details: list[dict] | None = None) -> int:
+    """`details` (optionnel) : feedback par question pour les questions à réponse
+    écrite, ex. [{"correcte": True, "commentaire": "..."}]."""
     with get_connection() as conn:
         cur = conn.execute(
-            """INSERT INTO tentatives (quiz_id, phase, score, score_max, duree_secondes, reponses_json)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (quiz_id, phase, score, score_max, duree_secondes, json.dumps(reponses)),
+            """INSERT INTO tentatives
+               (quiz_id, phase, score, score_max, duree_secondes, reponses_json, details_json)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (quiz_id, phase, score, score_max, duree_secondes, json.dumps(reponses, ensure_ascii=False),
+             json.dumps(details, ensure_ascii=False) if details is not None else None),
         )
         return cur.lastrowid
 

@@ -12,14 +12,36 @@ page si utile. Décris brièvement les schémas ou graphiques présents.
 Réponds uniquement avec le texte transcrit, en français."""
 
 
-def prompt_synthese(nom_cours: str, texte: str) -> str:
+def _bloc_examens_passes(examens_passes: str, but: str) -> str:
+    """Bloc optionnel inséré dans un prompt quand l'étudiant a déposé d'anciens
+    examens de ce cours : `but` précise comment s'en servir (adapté selon qu'on
+    génère la synthèse ou un quiz)."""
+    if not examens_passes.strip():
+        return ""
+    return f"""
+
+Voici aussi d'anciens examens de ce cours, déposés par l'étudiant comme référence :
+---
+{examens_passes}
+---
+Ce sont de VRAIS examens déjà donnés dans ce cours : {but}"""
+
+
+def prompt_synthese(nom_cours: str, texte: str, examens_passes: str = "") -> str:
+    bloc_examens = _bloc_examens_passes(
+        examens_passes,
+        "utilise-les EN PRIORITÉ pour la section \"notions_examen\" — base-toi sur les "
+        "notions et questions qui reviennent réellement dans ces examens plutôt que sur "
+        "une estimation générale, chaque fois que c'est possible.",
+    )
+
     return f"""Tu es un excellent tuteur universitaire, pédagogue et précis, capable
 d'enseigner n'importe quelle discipline (sciences, droit, lettres, économie, ingénierie...).
 Voici tout le contenu extrait des documents du cours "{nom_cours}" :
 
 ---
 {texte}
----
+---{bloc_examens}
 
 À partir de ce contenu, génère une fiche de révision structurée avec exactement ces
 5 sections (réponds en français, dans un style clair pour un étudiant) :
@@ -57,7 +79,8 @@ sort du cadre de ce contenu, dis-le simplement plutôt que d'inventer une répon
 Tu es prêt à répondre à ses questions."""
 
 
-def prompt_quiz(nom_cours: str, texte: str, type_quiz: str, nb_questions: int) -> str:
+def prompt_quiz(nom_cours: str, texte: str, type_quiz: str, nb_questions: int,
+                 examens_passes: str = "") -> str:
     if type_quiz == "examen_blanc":
         consigne_difficulte = (
             "Difficulté élevée, type examen universitaire : inclus des questions de mise "
@@ -70,12 +93,18 @@ def prompt_quiz(nom_cours: str, texte: str, type_quiz: str, nb_questions: int) -
             "base et de repérer les lacunes, pas de piéger l'étudiant."
         )
 
+    bloc_examens = _bloc_examens_passes(
+        examens_passes,
+        "inspire-toi de leur style, de leurs notions abordées et de leur niveau de "
+        "difficulté pour composer ce quiz, en plus du contenu du cours ci-dessus.",
+    )
+
     return f"""Tu es un professeur universitaire qui prépare un quiz à choix multiples (QCM)
 pour le cours "{nom_cours}", à partir du contenu suivant :
 
 ---
 {texte}
----
+---{bloc_examens}
 
 Génère exactement {nb_questions} questions à choix multiples couvrant l'ensemble du
 contenu (varie les notions abordées, ne te concentre pas sur un seul passage).
@@ -89,3 +118,64 @@ Pour chaque question, fournis :
 
 Réponds uniquement avec un objet JSON valide contenant une clé "questions" qui est
 une liste de {nb_questions} objets avec ces 4 clés. Pas de texte avant ou après, en français."""
+
+
+def prompt_quiz_ecrit(nom_cours: str, texte: str, nb_questions: int, examens_passes: str = "") -> str:
+    """Questions à réponse libre (pas de choix multiples) : chaque question a une
+    'reponse_modele' qui servira ensuite à corriger la réponse de l'étudiant."""
+    bloc_examens = _bloc_examens_passes(
+        examens_passes,
+        "inspire-toi de leur style de questions (souvent plus développées qu'un simple "
+        "QCM) et de leurs notions abordées pour composer ces questions.",
+    )
+
+    return f"""Tu es un professeur universitaire qui prépare des questions à réponse
+écrite (pas de choix multiples : l'étudiant doit rédiger sa réponse) pour le cours
+"{nom_cours}", à partir du contenu suivant :
+
+---
+{texte}
+---{bloc_examens}
+
+Génère exactement {nb_questions} questions ouvertes couvrant l'ensemble du contenu
+(varie les notions abordées), qui demandent une réponse rédigée courte (quelques
+phrases), pas juste un mot.
+
+Pour chaque question, fournis :
+- "enonce" : l'énoncé de la question
+- "reponse_modele" : une réponse modèle complète et correcte, qui servira de référence
+  pour corriger la réponse de l'étudiant (les points clés attendus, pas forcément mot
+  pour mot)
+
+Réponds uniquement avec un objet JSON valide contenant une clé "questions" qui est
+une liste de {nb_questions} objets avec ces 2 clés. Pas de texte avant ou après, en français."""
+
+
+def prompt_correction_ecrite(paires: list[dict]) -> str:
+    """`paires` : liste de {"enonce", "reponse_modele", "reponse_etudiant"}.
+
+    Une seule requête pour corriger toutes les réponses d'un coup (plutôt qu'un
+    appel par question), pour économiser le quota IA."""
+    blocs = []
+    for i, p in enumerate(paires):
+        blocs.append(
+            f"""Question {i + 1} : {p['enonce']}
+Réponse modèle : {p['reponse_modele']}
+Réponse de l'étudiant : {p['reponse_etudiant'] or "(pas de réponse donnée)"}"""
+        )
+    bloc_questions = "\n\n".join(blocs)
+
+    return f"""Tu es un professeur universitaire qui corrige les réponses écrites d'un
+étudiant, en comparant chacune à sa réponse modèle. Sois indulgent sur la formulation
+(ce n'est pas mot pour mot qui compte) mais strict sur le contenu : la réponse doit
+couvrir les points clés de la réponse modèle pour être jugée correcte.
+
+{bloc_questions}
+
+Pour chaque question, dans l'ordre, donne :
+- "correcte" : true si la réponse de l'étudiant couvre les points clés attendus, false sinon
+- "commentaire" : un court retour expliquant ce qui est bon ou ce qui manque (2-3 phrases)
+
+Réponds uniquement avec un objet JSON valide contenant une clé "resultats" qui est
+une liste de {len(paires)} objets avec ces 2 clés, dans le même ordre que les questions
+ci-dessus. Pas de texte avant ou après, en français."""
