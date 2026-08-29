@@ -4,20 +4,32 @@ Une petite application qui lit tes notes de cours (PDF, images, texte), te fait 
 fiche de synthèse, et te teste avec 3 quiz : un avant révision, le même après (pour
 voir ta progression), et un examen blanc chronométré.
 
-## 1. Récupérer ta clé Gemini gratuite (une seule fois)
+**Personne d'autre que toi (le propriétaire de l'appli) n'a besoin de créer une clé
+Gemini.** Les étudiants qui utilisent l'appli n'ont qu'un prénom et un mot de passe
+personnel à inventer — l'appli utilise en coulisses une seule clé Gemini que tu
+configures une fois pour toutes.
+
+## 1. Récupérer ta clé Gemini gratuite (une seule fois, pour toi)
 
 1. Va sur https://aistudio.google.com/apikey
 2. Connecte-toi avec ton compte Google
 3. Clique sur **"Create API key"** → **"Create API key in new project"**
 4. Copie la clé qui apparaît
-5. Ouvre le fichier `.streamlit/secrets.toml` dans ce dossier et remplace
-   `colle-ta-cle-ici` par ta vraie clé, entre guillemets. Exemple :
+5. Ouvre le fichier `.streamlit/secrets.toml` dans ce dossier et colle ta clé à deux
+   endroits (voir pourquoi juste en dessous) :
    ```toml
    GEMINI_API_KEY = "AIzaSyABCDEF1234567890"
+   SHARED_GEMINI_API_KEY = "AIzaSyABCDEF1234567890"
    ```
 6. Enregistre le fichier. C'est tout, tu ne referas ça qu'une seule fois.
 
-Ne partage jamais cette clé (ne l'envoie pas par mail, ne la mets pas sur internet).
+Pourquoi deux lignes avec la même clé ? `GEMINI_API_KEY` sert uniquement quand **toi**
+tu lances l'appli sur ton PC (mode solo, aucune identification demandée).
+`SHARED_GEMINI_API_KEY` est celle utilisée par **tous les étudiants** une fois l'appli
+en ligne. Elles peuvent être identiques, ou différentes si tu veux séparer ton usage
+perso de celui des étudiants.
+
+Ne partage jamais ces clés (ne les envoie pas par mail, ne les mets pas sur internet).
 
 ## 2. Lancer l'application
 
@@ -43,19 +55,18 @@ retourne dans le terminal et appuie sur `Ctrl + C`.
 Toutes tes données (cours, documents, scores) restent uniquement sur ton ordinateur,
 dans le dossier `data/`. Une page `/Demo` (accessible sans identification) montre un
 exemple déjà prêt (cours de macroéconomie) — pratique pour montrer l'appli à quelqu'un
-sans qu'il ait besoin de créer sa clé Gemini avant d'avoir vu ce que ça donne.
+et qu'il voie un résultat concret avant même de créer son espace personnel.
 
-**État actuel : l'appli est gratuite pour tout le monde** (chacun apporte juste sa
-propre clé Gemini gratuite). L'idée est de valider que ça aide vraiment les étudiants
-avant d'introduire un jour un modèle payant.
+**État actuel : l'appli est gratuite pour tout le monde.** L'idée est de valider que
+ça aide vraiment les étudiants avant d'introduire un jour un modèle payant.
 
 ## 4. Base de données permanente (Turso) — recommandé si tu la mets en ligne
 
 En local, tes données vivent dans `data/app.db`, un simple fichier sur ton PC. Mais une
 fois l'appli hébergée en ligne (étape 5), cet hébergement gratuit peut effacer ce
 fichier à tout moment (mise à jour du code, redémarrage après une période d'inactivité).
-Pour ne jamais perdre les codes de licence vendus ni les cours de tes clients, on
-branche l'appli sur une vraie base de données qui, elle, ne s'efface jamais :
+Pour ne jamais perdre les cours et la progression des étudiants, on branche l'appli
+sur une vraie base de données qui, elle, ne s'efface jamais :
 
 1. Crée un compte gratuit sur https://turso.tech
 2. Crée une base de données (bouton "Create Database", garde les réglages par défaut).
@@ -79,7 +90,7 @@ par le web (rien à compiler, ça marche sur n'importe quelle machine).
 
 L'appli sait fonctionner en **mode partagé** : plusieurs personnes peuvent l'utiliser
 en même temps, chacune avec ses propres cours (invisibles pour les autres, y compris
-pour toi) et sa propre clé Gemini gratuite. Pour ça, il faut la mettre en ligne gratuitement :
+pour toi). Pour ça, il faut la mettre en ligne gratuitement :
 
 1. **Crée un compte GitHub gratuit** sur https://github.com (si tu n'en as pas déjà un).
 2. **Crée un nouveau repository** (bouton vert "New") — tu peux le laisser privé ou public.
@@ -94,30 +105,29 @@ pour toi) et sa propre clé Gemini gratuite. Pour ça, il faut la mettre en lign
 5. Clique sur **"New app"**, choisis ton repository, la branche `master`, et le fichier
    principal `app.py`. Clique sur **"Deploy"**.
 6. Après quelques minutes, tu obtiens un lien du genre `https://tonapp.streamlit.app`
-   — c'est CE lien que tu partages avec tes collègues.
+   — c'est CE lien que tu partages avec tes étudiants.
 
-Ne mets jamais ta clé API dans le code que tu envoies sur GitHub — le fichier
-`.streamlit/secrets.toml` est volontairement exclu (voir `.gitignore`), c'est normal
-et voulu : l'appli hébergée n'a besoin d'aucune clé "globale", chacun apporte la sienne.
+Ne mets jamais tes clés dans le code que tu envoies sur GitHub — le fichier
+`.streamlit/secrets.toml` est volontairement exclu (voir `.gitignore`).
 
 Une fois en ligne, ajoute dans les secrets de ton appli sur share.streamlit.io (section
-"Secrets" des paramètres de l'appli) les **mêmes valeurs** que dans ton
-`.streamlit/secrets.toml` local — surtout `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` de
-l'étape 4 (sans elles en ligne, l'appli hébergée repartirait sur un fichier local non
-permanent) :
+"Secrets" des paramètres de l'appli) :
 ```toml
+SHARED_GEMINI_API_KEY = "ta-cle-gemini-ici"
 TURSO_DATABASE_URL = "libsql://ton-nom-de-base.turso.io"
 TURSO_AUTH_TOKEN = "ton-jeton-ici"
 ```
 
-⚠️ Ne mets **pas** `GEMINI_API_KEY` dans les secrets de l'appli en ligne : ça
-donnerait à tout le monde un accès "solo" sans même passer par l'écran
-d'identification. Chacun doit apporter sa propre clé.
+⚠️ Ne mets **jamais** `GEMINI_API_KEY` (sans le préfixe SHARED_) dans les secrets de
+l'appli en ligne : ça donnerait à n'importe quel visiteur anonyme un accès "solo"
+instantané, sans passer par l'écran d'identification, et il verrait potentiellement
+tes propres cours de test. Utilise bien le nom `SHARED_GEMINI_API_KEY` en ligne.
 
 ## 6. Remettre un modèle payant plus tard
 
 Le système de codes de licence (génération, expiration, renouvellement, export Excel
 des ventes) a été retiré pour l'instant, le temps de valider que l'appli aide
-vraiment les étudiants en la rendant gratuite. Il reste dans l'historique Git de ce
-projet (page `Administration`, `core/export_service.py`, table `licences`) et pourra
-être réintroduit quand l'envie de faire payer reviendra.
+vraiment les étudiants en la rendant gratuite et très simple d'accès (juste un prénom
+et un mot de passe, aucune clé technique à créer). Le code retiré reste dans
+l'historique Git de ce projet (page `Administration`, `core/export_service.py`, table
+`licences`) et pourra être réintroduit quand l'envie de faire payer reviendra.

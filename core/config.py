@@ -31,13 +31,21 @@ EXTENSIONS_IMAGES = ["png", "jpg", "jpeg"]
 
 
 def get_api_key() -> str | None:
-    """Lit la clé API Gemini depuis .streamlit/secrets.toml. Retourne None si absente.
-
-    Sur l'appli hébergée (sans secrets.toml, volontairement), Streamlit peut lever
-    différents types d'erreurs selon la version : on les attrape toutes largement,
-    l'absence de clé n'est pas une erreur ici, juste une info ("mode partagé")."""
+    """Clé Gemini pour l'usage solo, en local sur ton PC (secrets.toml local).
+    Ne jamais mettre cette clé précise dans les secrets de l'appli hébergée : ce
+    serait ouvrir un accès "solo" instantané à n'importe quel visiteur anonyme."""
     try:
         return st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        return None
+
+
+def get_shared_api_key() -> str | None:
+    """Clé Gemini utilisée pour TOUS les visiteurs identifiés (prénom + mot de passe)
+    de l'appli hébergée : personne n'a besoin de créer sa propre clé. C'est celle-ci
+    qu'il faut configurer dans les secrets de l'appli en ligne."""
+    try:
+        return st.secrets["SHARED_GEMINI_API_KEY"]
     except Exception:
         return None
 

@@ -20,9 +20,9 @@ Date de dernière mise à jour: 28/08/2026
 
 ### 2. Accès
 
-L'accès à l'appli se fait avec un prénom et une clé API Gemini propre à chaque
-utilisateur (gratuite, à créer soi-même sur Google AI Studio). L'appli est
-actuellement gratuite ; ces conditions seront mises à jour si un modèle payant
+L'accès à l'appli se fait avec un prénom et un mot de passe personnel inventé par
+l'utilisateur — aucune création de compte, aucune clé technique à obtenir. L'appli
+est actuellement gratuite ; ces conditions seront mises à jour si un modèle payant
 est introduit par la suite.
 
 ### 3. Données et confidentialité

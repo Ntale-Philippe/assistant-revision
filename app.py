@@ -3,7 +3,7 @@
 import streamlit as st
 
 from core import repository
-from core.auth import PROPRIETAIRE_SOLO, exiger_identification, lien_personnel, oublier_identite
+from core.auth import PROPRIETAIRE_SOLO, exiger_identification, lien_personnel_actuel, oublier_identite
 from core.db import init_db
 from core.navigation import afficher_navigation
 
@@ -27,18 +27,19 @@ if identifiant != PROPRIETAIRE_SOLO:
             oublier_identite()
             st.rerun()
 
-    with st.expander("Mon lien personnel (à mettre en favori sur ton téléphone)", expanded=True):
-        st.write(
-            "Pendant cette visite, tu n'as plus besoin de retaper quoi que ce soit en "
-            "changeant d'onglet. Mais si tu fermes le navigateur, il te faudra ce lien "
-            "pour retrouver ton espace la prochaine fois — mets-le en favori maintenant :"
-        )
-        st.code(lien_personnel(prenom, api_key), language=None)
-        st.caption(
-            "Ne partage jamais ce lien précis : il contient ta clé API personnelle. "
-            "Garde-le aussi de ton côté : sans lui, personne (pas même nous) ne peut "
-            "retrouver tes cours."
-        )
+    lien = lien_personnel_actuel()
+    if lien:
+        with st.expander("Mon lien personnel (à mettre en favori sur ton téléphone)", expanded=True):
+            st.write(
+                "Pendant cette visite, tu n'as plus besoin de retaper quoi que ce soit en "
+                "changeant d'onglet. Mais si tu fermes le navigateur, il te faudra ce lien "
+                "pour retrouver ton espace la prochaine fois — mets-le en favori maintenant :"
+            )
+            st.code(lien, language=None)
+            st.caption(
+                "Garde ce lien de ton côté : sans lui (et sans ton mot de passe), "
+                "personne (pas même nous) ne peut retrouver tes cours."
+            )
 
 st.divider()
 
@@ -108,8 +109,8 @@ with st.expander("Confidentialité"):
         "analysé (résumés, quiz) — c'est le seul endroit où il transite. "
         "Personne d'autre utilisant cette appli ne peut voir tes cours, tes documents "
         "ou tes résultats. Tes données restent accessibles uniquement avec la "
-        "combinaison de ton prénom et de ta clé API : il n'existe pas de procédure de "
-        "récupération si tu perds ton lien personnel et ta clé."
+        "combinaison de ton prénom et de ton mot de passe : il n'existe pas de "
+        "procédure de récupération si tu perds ton lien personnel et ton mot de passe."
     )
 
 st.page_link("pages/5_Conditions.py", label="Conditions d'utilisation")

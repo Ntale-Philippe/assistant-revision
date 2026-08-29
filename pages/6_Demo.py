@@ -2,7 +2,7 @@
 
 Montre un vrai exemple (synthèse + quiz) généré par l'appli sur un cours de
 macroéconomie, pour qu'un visiteur comprenne la valeur en quelques secondes avant
-de créer sa propre clé Gemini gratuite.
+même de créer son espace personnel.
 """
 
 import streamlit as st

@@ -1,31 +1,33 @@
-"""Identification légère : qui utilise l'appli, et avec quelle clé Gemini.
+"""Identification légère : qui utilise l'appli.
 
 Deux modes, gérés automatiquement :
 - Mode "solo" (usage local sur son propre PC) : une clé Gemini est déjà présente dans
   .streamlit/secrets.toml, aucune identification n'est demandée. Tout est stocké sous
   l'identifiant constant PROPRIETAIRE_SOLO.
-- Mode "partagé" (appli hébergée en ligne) : chacun donne juste son prénom et sa
-  propre clé Gemini gratuite. Pas de compte, pas de code, pas de mot de passe —
-  l'appli est gratuite pour l'instant, le temps de valider qu'elle aide vraiment les
-  étudiants avant d'introduire un jour un modèle payant.
+- Mode "partagé" (appli hébergée en ligne) : chacun donne juste son prénom et invente
+  un mot de passe personnel. Aucune clé Gemini à créer, aucun compte : l'appli utilise
+  UNE SEULE clé Gemini partagée entre tous les visiteurs (configurée par le
+  propriétaire de l'appli, jamais vue par les étudiants). C'est ce qui rend l'appli
+  utilisable en moins d'une minute, même par quelqu'un qui ne connaît rien à la
+  programmation.
 
-L'identifiant qui sépare les données de chacun en base est dérivé de la clé Gemini
-elle-même (un hash) : deux clés étant pour ainsi dire toujours différentes, ça suffit
-à garantir que personne ne voit les cours de quelqu'un d'autre, sans avoir besoin
-d'un champ supplémentaire à saisir.
+L'identifiant qui sépare les données de chacun en base est dérivé d'un hash du
+prénom + mot de passe : ça suffit à garantir que deux personnes ne voient jamais les
+mêmes cours, sans avoir besoin d'un vrai système de comptes.
 """
 
 import hashlib
 
 import streamlit as st
 
-from core.config import get_api_key
+from core.config import get_api_key, get_shared_api_key
 
 PROPRIETAIRE_SOLO = "moi"
 
 
-def _identifiant_depuis_cle(cle: str) -> str:
-    return hashlib.sha256(cle.strip().encode()).hexdigest()[:20]
+def _identifiant(prenom: str, mot_de_passe: str) -> str:
+    brut = f"{prenom.strip().lower()}::{mot_de_passe.strip()}"
+    return hashlib.sha256(brut.encode()).hexdigest()[:20]
 
 
 def get_identity() -> tuple[str | None, str | None, str | None]:
@@ -34,11 +36,15 @@ def get_identity() -> tuple[str | None, str | None, str | None]:
         return st.session_state["identite"]
 
     moi = st.query_params.get("moi", "").strip()
-    cle_url = st.query_params.get("cle", "").strip()
+    mot = st.query_params.get("mot", "").strip()
 
-    if moi and cle_url:
-        resultat = (_identifiant_depuis_cle(cle_url), moi, cle_url)
+    if moi and mot:
+        cle_partagee = get_shared_api_key()
+        if not cle_partagee:
+            return None, None, None
+        resultat = (_identifiant(moi, mot), moi, cle_partagee)
         st.session_state["identite"] = resultat
+        st.session_state["identite_brute"] = (moi, mot)
         return resultat
 
     if not moi:
@@ -64,24 +70,30 @@ def exiger_identification() -> tuple[str, str, str]:
         return identifiant, prenom, cle_api
 
     st.title("Bienvenue")
-    st.write("Avant de commencer, indique ton prénom et ta propre clé Gemini gratuite.")
+
+    if not get_shared_api_key() and not get_api_key():
+        st.error(
+            "L'appli n'est pas encore configurée (aucune clé Gemini disponible). "
+            "Réessaie plus tard."
+        )
+        st.stop()
+
+    st.write("Avant de commencer, indique ton prénom et invente un mot de passe.")
 
     st.page_link("pages/6_Demo.py", label="Voir un exemple sans rien remplir")
 
-    st.info(
-        "Pas encore de clé ? Va sur https://aistudio.google.com/apikey, connecte-toi "
-        "avec ton compte Google, puis clique sur **\"Create API key\"** → "
-        "**\"Create API key in new project\"**. C'est gratuit et ça prend 2 minutes."
-    )
-
     with st.form("identification_form"):
         nom = st.text_input("Ton prénom", placeholder="Ex : Alice")
-        cle = st.text_input("Ta clé API Gemini", type="password", placeholder="AIza...")
+        mot = st.text_input(
+            "Invente un mot de passe",
+            type="password",
+            help="Juste pour que ton espace reste privé, à toi seul. Retiens-le bien.",
+        )
         ok = st.form_submit_button("Commencer")
         if ok:
-            if nom.strip() and cle.strip():
+            if nom.strip() and mot.strip():
                 st.query_params["moi"] = nom.strip()
-                st.query_params["cle"] = cle.strip()
+                st.query_params["mot"] = mot.strip()
                 st.rerun()
             else:
                 st.error("Les deux champs sont obligatoires.")
@@ -89,8 +101,8 @@ def exiger_identification() -> tuple[str, str, str]:
     st.page_link("pages/5_Conditions.py", label="Conditions d'utilisation")
 
     st.caption(
-        "Astuce : une fois connecté, ton navigateur garde ça en mémoire pour toute la "
-        "visite. Pour revenir plus tard sans tout retaper, mets en favori le lien "
+        "Astuce : une fois connecté, tu n'as plus besoin de retaper ça en changeant "
+        "d'onglet. Pour revenir plus tard sans tout retaper, mets en favori le lien "
         "personnel affiché sur la page d'accueil."
     )
 
@@ -100,11 +112,16 @@ def exiger_identification() -> tuple[str, str, str]:
 def oublier_identite():
     """Efface l'identité mémorisée pour cette visite, pour changer de personne."""
     st.session_state.pop("identite", None)
+    st.session_state.pop("identite_brute", None)
     st.query_params.clear()
 
 
-def lien_personnel(prenom: str, cle_api: str) -> str:
-    """Construit le lien à mettre en favori pour retrouver son espace personnel."""
+def lien_personnel_actuel() -> str | None:
+    """Lien à mettre en favori pour retrouver son espace (mode partagé uniquement)."""
+    brute = st.session_state.get("identite_brute")
+    if not brute:
+        return None
     from urllib.parse import quote
 
-    return f"?moi={quote(prenom)}&cle={quote(cle_api)}"
+    prenom, mot = brute
+    return f"?moi={quote(prenom)}&mot={quote(mot)}"
