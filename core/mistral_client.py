@@ -47,6 +47,12 @@ def _client_actif() -> Mistral:
 
 
 def _est_erreur_temporaire(e: Exception) -> bool:
+    # httpx lève des classes comme ReadTimeout/ConnectTimeout dont le message est
+    # "The read operation timed out" (avec un espace) : ne contient PAS le mot
+    # "TIMEOUT" cherché plus bas, d'où cette vérification sur le nom de la classe
+    # en plus du texte du message.
+    if "TIMEOUT" in type(e).__name__.upper():
+        return True
     texte = str(e).upper()
     return any(code in texte for code in CODES_TEMPORAIRES)
 
