@@ -21,6 +21,15 @@ NB_QUESTIONS_DIAGNOSTIQUE = 8
 NB_QUESTIONS_EXAMEN = 15
 DUREE_EXAMEN_MINUTES = 20
 
+# Seuils pour les gros cours (beaucoup de documents, ou documents très longs) :
+# au-delà de SEUIL_AVERTISSEMENT, on prévient juste l'utilisateur que ça va prendre
+# plus de temps. Au-delà de SEUIL_CONDENSATION (plus gros), le texte est condensé en
+# plusieurs étapes avant d'être envoyé à l'IA, pour rester rapide et éviter de se
+# heurter aux limites gratuites de Google avec un message trop volumineux.
+SEUIL_AVERTISSEMENT_CARACTERES = 30_000
+SEUIL_CONDENSATION_CARACTERES = 60_000
+TAILLE_MORCEAU_CONDENSATION = 25_000
+
 # Extensions de fichiers acceptées à l'upload (V1 : texte + images/PDF, audio prévu pour plus tard)
 # Séparées en deux groupes : sur Android, mélanger images et autres fichiers dans une
 # même zone de dépôt fait parfois disparaître l'option "Fichiers" du sélecteur (bug

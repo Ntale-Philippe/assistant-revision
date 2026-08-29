@@ -40,6 +40,21 @@ Réponds uniquement avec un objet JSON valide contenant ces 5 clés (chaînes de
 en Markdown), sans texte avant ou après."""
 
 
+def prompt_condensation(morceau: str) -> str:
+    return f"""Voici un extrait des documents d'un cours (le cours est volumineux,
+donc traité par morceaux avant la fiche de révision finale) :
+
+---
+{morceau}
+---
+
+Condense cet extrait en un résumé dense qui garde TOUTES les informations
+importantes : définitions, chiffres, dates, noms, raisonnements, exemples clés.
+Va à l'essentiel mais ne perds aucune notion importante — ce résumé servira ensuite
+à générer une fiche de révision et un quiz, donc rien d'important ne doit disparaître.
+Réponds uniquement avec le résumé, en français, sans introduction ni commentaire."""
+
+
 def prompt_contexte_chat(nom_cours: str, texte: str) -> str:
     return f"""Tu es un tuteur universitaire qui aide un étudiant à réviser le cours
 "{nom_cours}". Réponds à ses questions uniquement en te basant sur le contenu du cours

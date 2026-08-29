@@ -1,6 +1,7 @@
 """Génération des quiz, et calcul du score d'une tentative."""
 
 from core import repository
+from core.condensation_service import texte_pret_pour_ia
 from core.config import (
     DUREE_EXAMEN_MINUTES,
     NB_QUESTIONS_DIAGNOSTIQUE,
@@ -31,6 +32,7 @@ def generer_quiz(cours_id: int, proprietaire: str, type_quiz: str, api_key: str)
         nb_questions = NB_QUESTIONS_DIAGNOSTIQUE
         duree_minutes = None
 
+    texte = texte_pret_pour_ia(texte, api_key)
     prompt = prompt_quiz(cours["nom"], texte, type_quiz, nb_questions)
     resultat = generer_json(prompt, api_key)
     questions = resultat["questions"]

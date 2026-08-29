@@ -8,7 +8,12 @@ from streamlit_autorefresh import st_autorefresh
 from core import repository
 from core.auth import exiger_identification
 from core.chat_service import poser_question
-from core.config import EXTENSIONS_DOCUMENTS, EXTENSIONS_IMAGES, UPLOADS_DIR
+from core.config import (
+    EXTENSIONS_DOCUMENTS,
+    EXTENSIONS_IMAGES,
+    SEUIL_AVERTISSEMENT_CARACTERES,
+    UPLOADS_DIR,
+)
 from core.db import init_db
 from core.extraction import extraire_texte, type_fichier_depuis_nom
 from core.gemini_client import (
@@ -77,6 +82,19 @@ def _executer_generation_ia(cle: str, action):
     except Exception as e:
         signaler_echec(cle)
         st.error(f"Erreur : {message_utilisateur(e)}")
+
+
+def _avertir_si_cours_volumineux():
+    """Affiche un avertissement si le cours contient beaucoup de texte : la
+    génération sera plus lente que d'habitude, mieux vaut ne cliquer qu'une fois
+    et patienter plutôt que de recliquer."""
+    texte_cours = repository.texte_complet_du_cours(cours_id)
+    if len(texte_cours) > SEUIL_AVERTISSEMENT_CARACTERES:
+        st.warning(
+            "Ce cours contient beaucoup de texte (plusieurs documents, ou des "
+            "documents volumineux) : la génération peut prendre plus de temps que "
+            "d'habitude. C'est normal — patiente sans recliquer plusieurs fois."
+        )
 
 # --- Onglet Documents ---------------------------------------------------------
 
@@ -158,6 +176,7 @@ with tab_docs:
 
 with tab_synthese:
     synthese = repository.derniere_synthese(cours_id)
+    _avertir_si_cours_volumineux()
 
     col1, col2 = st.columns([3, 1])
     with col1:
@@ -193,6 +212,7 @@ with tab_synthese:
 
 with tab_quiz:
     st.subheader("Tes 3 quiz")
+    _avertir_si_cours_volumineux()
 
     quiz_diag = repository.obtenir_quiz_par_type(cours_id, "diagnostique")
     quiz_examen = repository.obtenir_quiz_par_type(cours_id, "examen_blanc")
