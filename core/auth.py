@@ -78,6 +78,14 @@ def exiger_identification() -> tuple[str, str, str]:
         )
         st.stop()
 
+    st.markdown(
+        "📄 **Dépose tes notes de cours** (PDF, photos, captures d'écran)\n\n"
+        "🧠 **L'IA te prépare une fiche de synthèse claire** + les notions probables à l'examen\n\n"
+        "✅ **Teste-toi avec des quiz adaptés** (avant/après révision, examen blanc chronométré)\n\n"
+        "📈 **Suis ta progression** pour arriver serein le jour J"
+    )
+    st.divider()
+
     st.write(
         "**Première visite ?** Choisis un prénom et invente un mot de passe.\n\n"
         "**Déjà venu ?** Retape exactement le même prénom et le même mot de passe "
