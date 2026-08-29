@@ -16,6 +16,7 @@ afficher_navigation()
 identifiant, prenom, api_key = exiger_identification()
 
 st.title("Mon assistant de révision")
+st.write("**Pas de panique : révise à ton rythme, on s'occupe du reste.**")
 st.caption("Dépose tes notes, génère une synthèse et teste-toi avec des quiz.")
 
 if identifiant != PROPRIETAIRE_SOLO:
