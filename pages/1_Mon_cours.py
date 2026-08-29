@@ -525,3 +525,4 @@ with tab_chat:
                             st.rerun()
                         except Exception as e:
                             st.error(f"Erreur : {message_utilisateur_mistral(e)}")
+# redeploy-trigger 20260829T230325
