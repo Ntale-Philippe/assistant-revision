@@ -52,8 +52,21 @@ def supprimer_cours(cours_id: int, proprietaire: str):
 def ajouter_document(cours_id: int, nom_original: str, type_fichier: str, chemin_stocke: str,
                       categorie: str = "cours") -> int:
     """`categorie` : 'cours' (notes normales, par défaut) ou 'examen_passe' (ancien
-    examen déposé comme référence — jamais mélangé au contenu du cours)."""
+    examen déposé comme référence — jamais mélangé au contenu du cours).
+
+    Idempotent : si un document du même nom existe déjà pour ce cours (dans la même
+    catégorie), renvoie son id existant au lieu d'en créer un doublon — évite les
+    doublons quand quelqu'un reclique sur "Ajouter" en pensant que ça n'a pas marché
+    (constaté en vrai : un document présent 3 fois pour le même cours)."""
     with get_connection() as conn:
+        existant = conn.execute(
+            """SELECT id FROM documents WHERE cours_id = ? AND nom_original = ? AND categorie = ?
+               ORDER BY created_at DESC LIMIT 1""",
+            (cours_id, nom_original, categorie),
+        ).fetchone()
+        if existant:
+            return existant["id"]
+
         cur = conn.execute(
             """INSERT INTO documents (cours_id, nom_original, type_fichier, chemin_stocke, categorie)
                VALUES (?, ?, ?, ?, ?)""",
