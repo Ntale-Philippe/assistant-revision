@@ -15,9 +15,15 @@ from core.config import GEMINI_MODEL
 
 # Codes d'erreur temporaires côté Google : ça vaut le coup de réessayer avant
 # d'abandonner (surcharge passagère, quota atteint sur une courte fenêtre...).
-CODES_TEMPORAIRES = ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED")
+CODES_TEMPORAIRES = ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "TIMEOUT", "DEADLINE_EXCEEDED")
 TENTATIVES_MAX = 3
 DELAI_INITIAL_SECONDES = 2
+
+# Temps maximum qu'on laisse à UN appel à Google avant d'abandonner (en millisecondes).
+# Sans ça, un appel qui ne répond jamais (connexion qui traîne) bloque l'appli
+# indéfiniment : l'utilisateur voit tourner le spinner sans fin, sans même un message
+# d'erreur pour comprendre ce qui se passe.
+DELAI_TIMEOUT_MS = 60_000
 
 # Après un échec, on empêche de recliquer tout de suite : cliquer 10 fois d'affilée
 # sur "Générer" ne fait qu'aggraver un ralentissement passager côté Google (chaque
@@ -53,21 +59,29 @@ def _get_client(api_key: str) -> genai.Client:
     # a donc son propre client Gemini, sans jamais mélanger les clés.
     if not api_key:
         raise GeminiNonConfigure("Clé API Gemini manquante.")
-    return genai.Client(api_key=api_key)
+    return genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(timeout=DELAI_TIMEOUT_MS),
+    )
+
+
+def _est_erreur_temporaire(e: Exception) -> bool:
+    texte = str(e).upper()
+    return any(code in texte for code in CODES_TEMPORAIRES)
 
 
 def _avec_reessai(appel):
     """Exécute `appel()` en réessayant automatiquement si Gemini répond une erreur
-    temporaire (surcharge, quota momentané). Abandonne immédiatement pour toute
-    autre erreur (clé invalide, prompt refusé, etc.) : réessayer ne servirait à rien."""
+    temporaire (surcharge, quota momentané, délai dépassé). Abandonne immédiatement
+    pour toute autre erreur (clé invalide, prompt refusé, etc.) : réessayer ne
+    servirait à rien."""
     derniere_erreur = None
     for tentative in range(TENTATIVES_MAX):
         try:
             return appel()
         except Exception as e:
             derniere_erreur = e
-            est_temporaire = any(code in str(e) for code in CODES_TEMPORAIRES)
-            if not est_temporaire or tentative == TENTATIVES_MAX - 1:
+            if not _est_erreur_temporaire(e) or tentative == TENTATIVES_MAX - 1:
                 raise
             time.sleep(DELAI_INITIAL_SECONDES * (2 ** tentative))
     raise derniere_erreur
@@ -77,10 +91,19 @@ def message_utilisateur(erreur: Exception) -> str:
     """Transforme une erreur technique en message compréhensible pour l'utilisateur
     (sans préfixe "Erreur" : à ajouter par l'appelant selon le contexte)."""
     texte = str(erreur)
-    if any(code in texte for code in CODES_TEMPORAIRES):
+    if "PERDAY" in texte.upper().replace(" ", ""):
+        # Quota GRATUIT *quotidien* épuisé : dire "réessaie dans une minute" serait
+        # trompeur ici, ça ne repartira pas avant le renouvellement du quota.
         return (
-            "les serveurs de Google sont temporairement surchargés (l'appli a déjà "
-            "réessayé plusieurs fois automatiquement). Patiente une minute et réessaie."
+            "le quota gratuit quotidien de l'IA de Google est épuisé pour aujourd'hui "
+            "(le plan gratuit de Google est très limité). Réessaie plus tard dans la "
+            "journée, ou demain si ça persiste."
+        )
+    if _est_erreur_temporaire(erreur):
+        return (
+            "les serveurs de Google sont temporairement surchargés ou mettent trop "
+            "de temps à répondre (l'appli a déjà réessayé plusieurs fois "
+            "automatiquement). Patiente une minute et réessaie."
         )
     return texte
 

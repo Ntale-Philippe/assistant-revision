@@ -1,7 +1,6 @@
 """Orchestration : texte des documents d'un cours -> IA -> fiche de synthèse sauvegardée."""
 
 from core import repository
-from core.condensation_service import texte_pret_pour_ia
 from core.gemini_client import generer_json
 from core.prompts import prompt_synthese
 
@@ -19,7 +18,9 @@ def generer_et_sauver_synthese(cours_id: int, proprietaire: str, api_key: str) -
             "Ajoute au moins un document et attends la fin de son extraction."
         )
 
-    texte = texte_pret_pour_ia(texte, api_key)
+    # Un seul appel à l'IA avec tout le texte, même pour un gros cours : découper en
+    # plusieurs appels ferait consommer plusieurs fois le quota gratuit quotidien
+    # (très limité, voir core/gemini_client.py) pour une seule génération.
     prompt = prompt_synthese(cours["nom"], texte)
     synthese = generer_json(prompt, api_key)
     repository.sauver_synthese(cours_id, synthese)

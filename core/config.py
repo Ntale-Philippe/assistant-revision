@@ -21,14 +21,16 @@ NB_QUESTIONS_DIAGNOSTIQUE = 8
 NB_QUESTIONS_EXAMEN = 15
 DUREE_EXAMEN_MINUTES = 20
 
-# Seuils pour les gros cours (beaucoup de documents, ou documents très longs) :
-# au-delà de SEUIL_AVERTISSEMENT, on prévient juste l'utilisateur que ça va prendre
-# plus de temps. Au-delà de SEUIL_CONDENSATION (plus gros), le texte est condensé en
-# plusieurs étapes avant d'être envoyé à l'IA, pour rester rapide et éviter de se
-# heurter aux limites gratuites de Google avec un message trop volumineux.
+# Seuils pour les gros cours (beaucoup de documents, ou documents très longs).
+# Important : on envoie TOUJOURS tout le texte en un seul appel à l'IA (jamais
+# découpé en plusieurs appels), car le plan gratuit de Google limite le nombre de
+# *requêtes* par jour (pas la taille d'une requête) — découper en morceaux
+# consommerait plusieurs fois ce quota très restreint pour une seule génération.
 SEUIL_AVERTISSEMENT_CARACTERES = 30_000
-SEUIL_CONDENSATION_CARACTERES = 60_000
-TAILLE_MORCEAU_CONDENSATION = 25_000
+# Au-delà de ce seuil, le cours est si volumineux (l'équivalent d'un manuel entier)
+# qu'on recommande activement de le diviser en plusieurs cours (par chapitre par
+# exemple), pour ne pas risquer d'épuiser le quota gratuit du jour à lui seul.
+SEUIL_ENORME_CARACTERES = 300_000
 
 # Extensions de fichiers acceptées à l'upload (V1 : texte + images/PDF, audio prévu pour plus tard)
 # Séparées en deux groupes : sur Android, mélanger images et autres fichiers dans une

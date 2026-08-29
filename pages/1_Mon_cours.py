@@ -12,6 +12,7 @@ from core.config import (
     EXTENSIONS_DOCUMENTS,
     EXTENSIONS_IMAGES,
     SEUIL_AVERTISSEMENT_CARACTERES,
+    SEUIL_ENORME_CARACTERES,
     UPLOADS_DIR,
 )
 from core.db import init_db
@@ -85,15 +86,25 @@ def _executer_generation_ia(cle: str, action):
 
 
 def _avertir_si_cours_volumineux():
-    """Affiche un avertissement si le cours contient beaucoup de texte : la
-    génération sera plus lente que d'habitude, mieux vaut ne cliquer qu'une fois
-    et patienter plutôt que de recliquer."""
+    """Affiche un avertissement si le cours contient beaucoup de texte.
+
+    Le plan gratuit de Google limite le nombre de *requêtes* par jour (pas la taille
+    d'une requête) : on envoie donc toujours tout le texte en un seul appel, même
+    pour un gros cours — mais un cours énorme (l'équivalent d'un manuel entier) reste
+    risqué à lui seul, d'où la suggestion de le diviser."""
     texte_cours = repository.texte_complet_du_cours(cours_id)
-    if len(texte_cours) > SEUIL_AVERTISSEMENT_CARACTERES:
+    if len(texte_cours) > SEUIL_ENORME_CARACTERES:
+        st.warning(
+            "Ce cours est énorme (l'équivalent d'un manuel entier) : une seule "
+            "génération peut prendre plus longtemps que d'habitude et utiliser une "
+            "bonne partie du quota IA gratuit du jour. Envisage de le diviser en "
+            "plusieurs cours plus petits (par chapitre, par exemple)."
+        )
+    elif len(texte_cours) > SEUIL_AVERTISSEMENT_CARACTERES:
         st.warning(
             "Ce cours contient beaucoup de texte (plusieurs documents, ou des "
-            "documents volumineux) : la génération peut prendre plus de temps que "
-            "d'habitude. C'est normal — patiente sans recliquer plusieurs fois."
+            "documents volumineux) : la génération peut prendre un peu plus de "
+            "temps que d'habitude. C'est normal — patiente sans recliquer plusieurs fois."
         )
 
 # --- Onglet Documents ---------------------------------------------------------
