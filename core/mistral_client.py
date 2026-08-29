@@ -21,7 +21,11 @@ MISTRAL_MODEL = "mistral-small-latest"
 CODES_TEMPORAIRES = ("429", "500", "502", "503", "504", "TIMEOUT", "RATE LIMIT", "CAPACITY EXCEEDED")
 TENTATIVES_MAX = 3
 DELAI_INITIAL_SECONDES = 2
-DELAI_TIMEOUT_MS = 60_000
+# Une synthèse sur un gros cours peut légitimement prendre plus d'une minute (la
+# section "synthese" n'a pas de longueur fixe, contrairement au quiz qui génère
+# toujours un nombre fixe de questions) : marge plus large pour éviter un timeout
+# prématuré sur une réponse qui aurait fini par arriver.
+DELAI_TIMEOUT_MS = 90_000
 
 
 class MistralNonConfigure(Exception):
@@ -95,13 +99,19 @@ def message_utilisateur(erreur: Exception) -> str:
     return texte
 
 
-def generer_json(prompt: str) -> dict:
-    """Envoie un prompt texte et récupère une réponse JSON déjà parsée (dict)."""
+def generer_json(prompt: str, max_tokens: int | None = None) -> dict:
+    """Envoie un prompt texte et récupère une réponse JSON déjà parsée (dict).
+
+    `max_tokens` borne la longueur de la réponse : sans ça, une section ouverte
+    comme la synthèse peut partir sur une réponse démesurément longue pour un gros
+    cours, ce qui prend plus de temps à générer et augmente le risque de timeout."""
     client = _client_actif()
+    kwargs = {"max_tokens": max_tokens} if max_tokens else {}
     response = _avec_reessai(lambda: client.chat.complete(
         model=MISTRAL_MODEL,
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"},
+        **kwargs,
     ))
     return json.loads(response.choices[0].message.content)
 

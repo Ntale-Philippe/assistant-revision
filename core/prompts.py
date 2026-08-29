@@ -24,15 +24,19 @@ Voici tout le contenu extrait des documents du cours "{nom_cours}" :
 À partir de ce contenu, génère une fiche de révision structurée avec exactement ces
 5 sections (réponds en français, dans un style clair pour un étudiant) :
 
-1. "synthese" : un résumé structuré et complet du cours (les points clés, organisés
-   logiquement, en Markdown avec des titres ## et des listes à puces).
+1. "synthese" : un résumé structuré des points clés du cours (organisés logiquement,
+   en Markdown avec des titres ## et des listes à puces). Reste synthétique et va à
+   l'essentiel même si le cours est volumineux : privilégie les points les plus
+   importants plutôt qu'une retranscription exhaustive (quelques centaines de mots
+   suffisent, jamais plus d'environ 1000 mots).
 2. "contexte" : pourquoi ce sujet est important dans cette discipline (lien avec
    d'autres notions du cursus, applications concrètes, pourquoi un étudiant de cette
-   filière doit le maîtriser).
+   filière doit le maîtriser). Quelques phrases suffisent.
 3. "notions_examen" : les passages, définitions ou raisonnements les plus susceptibles
-   de tomber à l'examen, avec une courte justification pour chacun (liste à puces).
+   de tomber à l'examen, avec une courte justification pour chacun (liste à puces,
+   une dizaine d'éléments maximum).
 4. "a_retenir" : les notions fondamentales à retenir "pour la vie", au-delà de l'examen
-   (liste à puces, allant à l'essentiel).
+   (liste à puces, allant à l'essentiel, une dizaine d'éléments maximum).
 5. "fun_facts" : 3 à 5 anecdotes ou faits marquants liés au sujet, pour rendre le
    cours mémorable.
 

@@ -40,7 +40,12 @@ def generer_et_sauver_synthese(cours_id: int, proprietaire: str) -> dict:
         )
 
     prompt = prompt_synthese(cours["nom"], texte)
-    synthese = generer_json(prompt)
+    # Borne la longueur de la réponse : sans ça, la section "synthese" (ouverte, pas
+    # de nombre fixe comme les questions de quiz) peut partir sur une réponse très
+    # longue pour un gros cours, ce qui prend plus de temps et augmente le risque de
+    # timeout — c'est précisément ce qui faisait échouer la synthèse alors que le
+    # quiz (toujours borné à un nombre fixe de questions) réussissait sur le même cours.
+    synthese = generer_json(prompt, max_tokens=6000)
     synthese = {cle: _en_markdown(valeur) for cle, valeur in synthese.items()}
     repository.sauver_synthese(cours_id, synthese)
     return synthese
