@@ -4,7 +4,6 @@ Chaque appel reçoit la clé API de la personne qui l'utilise (elle peut être d
 pour chaque visiteur de l'appli quand elle est partagée entre plusieurs collègues).
 """
 
-import json
 import time
 
 import streamlit as st
@@ -66,6 +65,13 @@ def _get_client(api_key: str) -> genai.Client:
 
 
 def _est_erreur_temporaire(e: Exception) -> bool:
+    # httpx (utilisé sous le capot par le SDK Gemini) lève des classes comme
+    # ReadTimeout/ConnectTimeout dont le message est "The read operation timed out"
+    # (avec un espace) : ne contient PAS le mot "TIMEOUT" cherché plus bas — même
+    # bug que celui trouvé et corrigé côté Mistral, présent ici aussi pour la
+    # lecture des images/PDF scannés (lire_image/lire_pdf).
+    if "TIMEOUT" in type(e).__name__.upper():
+        return True
     texte = str(e).upper()
     return any(code in texte for code in CODES_TEMPORAIRES)
 
@@ -108,26 +114,6 @@ def message_utilisateur(erreur: Exception) -> str:
     return texte
 
 
-def generer_json(prompt: str, api_key: str) -> dict:
-    """Envoie un prompt texte et récupère une réponse JSON déjà parsée (dict)."""
-    client = _get_client(api_key)
-    response = _avec_reessai(lambda: client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[prompt],
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-        ),
-    ))
-    return json.loads(response.text)
-
-
-def generer_texte(prompt: str, api_key: str) -> str:
-    """Envoie un prompt texte simple et récupère la réponse en texte brut."""
-    client = _get_client(api_key)
-    response = _avec_reessai(lambda: client.models.generate_content(model=GEMINI_MODEL, contents=[prompt]))
-    return response.text
-
-
 def lire_image(image_bytes: bytes, mime_type: str, prompt: str, api_key: str) -> str:
     """Envoie une image + un prompt de transcription, récupère le texte transcrit."""
     client = _get_client(api_key)
@@ -151,27 +137,4 @@ def lire_pdf(pdf_bytes: bytes, prompt: str, api_key: str) -> str:
             prompt,
         ],
     ))
-    return response.text
-
-
-def repondre_chat(contexte: str, historique: list[dict], nouvelle_question: str, api_key: str) -> str:
-    """Répond à une question dans une conversation multi-tours.
-
-    `historique` est une liste de dicts {"role": "utilisateur"|"assistant", "contenu": str}
-    déjà échangés avant cette nouvelle question (sans elle)."""
-    client = _get_client(api_key)
-
-    contents = [
-        types.Content(role="user", parts=[types.Part.from_text(text=contexte)]),
-        types.Content(
-            role="model",
-            parts=[types.Part.from_text(text="Compris, je suis prêt à répondre à tes questions sur ce cours.")],
-        ),
-    ]
-    for message in historique:
-        role = "user" if message["role"] == "utilisateur" else "model"
-        contents.append(types.Content(role=role, parts=[types.Part.from_text(text=message["contenu"])]))
-    contents.append(types.Content(role="user", parts=[types.Part.from_text(text=nouvelle_question)]))
-
-    response = _avec_reessai(lambda: client.models.generate_content(model=GEMINI_MODEL, contents=contents))
     return response.text
