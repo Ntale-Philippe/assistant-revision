@@ -354,10 +354,10 @@ with tab_quiz:
     with st.container(border=True):
         col1, col2 = st.columns([3, 1])
         with col1:
-            st.markdown("#### 4. Questions à réponse écrite (entraînement)")
+            st.markdown("#### 4. Examen écrit (chronométré)")
             st.caption(
-                "Rédige tes réponses au lieu de choisir — corrigé par l'IA. "
-                "Pour t'entraîner, ne compte pas dans ta progression."
+                "Rédige tes réponses au lieu de choisir, en temps limité — corrigé "
+                "par l'IA. Séparé des 3 quiz ci-dessus, ne compte pas dans ta progression."
             )
         cle_cooldown = f"quiz_ecrit_{cours_id}"
         peut, restant = _etat_bouton_ia(cle_cooldown)
@@ -379,7 +379,7 @@ with tab_quiz:
                         )
             _afficher_cooldown(cle_cooldown, peut, restant)
 
-            if st.button("S'entraîner"):
+            if st.button("Passer l'examen écrit"):
                 st.session_state["quiz_ecrit_id"] = quiz_ecrit["id"]
                 st.switch_page("pages/7_Questions_ecrites.py")
             tentatives_ecrit = repository.lister_tentatives(quiz_ecrit["id"])

@@ -2,6 +2,7 @@
 
 from core import repository
 from core.config import (
+    DUREE_EXAMEN_ECRIT_MINUTES,
     DUREE_EXAMEN_MINUTES,
     NB_QUESTIONS_DIAGNOSTIQUE,
     NB_QUESTIONS_ECRIT,
@@ -74,7 +75,7 @@ def generer_quiz_ecrit(cours_id: int, proprietaire: str) -> int:
     resultat = generer_json(prompt)
     questions = resultat["questions"]
 
-    quiz_id = repository.creer_quiz(cours_id, "reponse_ecrite", None)
+    quiz_id = repository.creer_quiz(cours_id, "reponse_ecrite", DUREE_EXAMEN_ECRIT_MINUTES)
     for i, q in enumerate(questions):
         repository.ajouter_question(
             quiz_id=quiz_id,

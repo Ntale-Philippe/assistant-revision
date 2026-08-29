@@ -1,8 +1,11 @@
-"""Entraînement : questions à réponse écrite (rédigées, pas à choix multiples),
-corrigées par l'IA. Un mode d'entraînement séparé des 3 quiz habituels — ne compte
+"""Examen écrit chronométré : questions à réponse écrite (rédigées, pas à choix
+multiples), corrigées par l'IA. Un 4ᵉ mode séparé des 3 quiz habituels — ne compte
 pas dans le suivi de progression avant/après."""
 
+import time
+
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 
 from core import repository
 from core.auth import exiger_identification
@@ -11,7 +14,7 @@ from core.mistral_client import message_utilisateur
 from core.navigation import afficher_navigation
 from core.quiz_service import corriger_ecrit
 
-st.set_page_config(page_title="Questions à réponse écrite", page_icon="assets/icone.png", layout="centered")
+st.set_page_config(page_title="Examen écrit", page_icon="assets/icone.png", layout="centered")
 init_db()
 afficher_navigation()
 
@@ -33,10 +36,10 @@ if not quiz_row or not repository.obtenir_cours(quiz_row["cours_id"], identifian
 
 questions = repository.lister_questions(quiz_id)
 
-st.title("Questions à réponse écrite")
+st.title("Examen écrit chronométré")
 st.caption(
     "Rédige tes réponses avec tes propres mots — l'IA compare au contenu attendu, "
-    "pas mot pour mot. Entraînement libre, sans chrono."
+    "pas mot pour mot."
 )
 
 # Réinitialise l'état si on démarre une nouvelle tentative sur ce jeu de questions.
@@ -45,11 +48,31 @@ if st.session_state.get("ecrit_session_key") != session_key:
     st.session_state["ecrit_session_key"] = session_key
     st.session_state["ecrit_reponses"] = {i: "" for i in range(len(questions))}
     st.session_state["ecrit_termine"] = False
+    st.session_state["ecrit_debut"] = time.time()
     st.session_state.pop("ecrit_resultat", None)
 
-st.divider()
-
 termine = st.session_state.get("ecrit_termine", False)
+temps_ecoule = False
+
+# --- Chrono --------------------------------------------------------------------
+
+if not termine:
+    st_autorefresh(interval=1000, key="chrono_ecrit_refresh")
+
+duree_minutes = quiz_row.get("duree_minutes") or 15
+duree_totale = duree_minutes * 60
+ecoule = time.time() - st.session_state["ecrit_debut"]
+restant = max(0, int(duree_totale - ecoule))
+
+if not termine:
+    minutes, secondes = divmod(restant, 60)
+    st.metric("Temps restant", f"{minutes:02d}:{secondes:02d}")
+    if restant <= 60:
+        st.caption("Moins d'une minute restante.")
+    if restant <= 0:
+        temps_ecoule = True
+
+st.divider()
 
 for i, q in enumerate(questions):
     st.markdown(f"**{i + 1}. {q['enonce']}**")
@@ -65,20 +88,34 @@ for i, q in enumerate(questions):
     st.session_state["ecrit_reponses"][i] = reponse
     st.write("")
 
+
+def _corriger_et_sauver():
+    reponses_texte = [st.session_state["ecrit_reponses"][i] for i in range(len(questions))]
+    score, score_max, details = corriger_ecrit(questions, reponses_texte)
+    st.session_state["ecrit_resultat"] = {
+        "score": score,
+        "score_max": score_max,
+        "details": details,
+        "reponses": reponses_texte,
+    }
+    st.session_state["ecrit_termine"] = True
+    duree_secondes = int(time.time() - st.session_state["ecrit_debut"])
+    repository.sauver_tentative(quiz_id, "ecrit", score, score_max, duree_secondes, reponses_texte, details)
+
+
 if not termine:
-    if st.button("Valider mes réponses", type="primary"):
-        reponses_texte = [st.session_state["ecrit_reponses"][i] for i in range(len(questions))]
+    if temps_ecoule:
+        st.warning("Temps écoulé. Ton examen est en cours de correction...")
         with st.spinner("L'IA corrige tes réponses..."):
             try:
-                score, score_max, details = corriger_ecrit(questions, reponses_texte)
-                st.session_state["ecrit_resultat"] = {
-                    "score": score,
-                    "score_max": score_max,
-                    "details": details,
-                    "reponses": reponses_texte,
-                }
-                st.session_state["ecrit_termine"] = True
-                repository.sauver_tentative(quiz_id, "ecrit", score, score_max, None, reponses_texte, details)
+                _corriger_et_sauver()
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erreur : {message_utilisateur(e)}")
+    elif st.button("Valider mes réponses", type="primary"):
+        with st.spinner("L'IA corrige tes réponses..."):
+            try:
+                _corriger_et_sauver()
                 st.rerun()
             except Exception as e:
                 st.error(f"Erreur : {message_utilisateur(e)}")
@@ -103,6 +140,6 @@ if termine and st.session_state.get("ecrit_resultat"):
             st.write(q["reponse_modele"])
 
     if st.button("Retour au cours"):
-        for cle in ["ecrit_session_key", "ecrit_reponses", "ecrit_termine", "ecrit_resultat"]:
+        for cle in ["ecrit_session_key", "ecrit_reponses", "ecrit_termine", "ecrit_debut", "ecrit_resultat"]:
             st.session_state.pop(cle, None)
         st.switch_page("pages/1_Mon_cours.py")
