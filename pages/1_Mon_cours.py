@@ -13,6 +13,7 @@ from core.config import (
     EXTENSIONS_IMAGES,
     SEUIL_AVERTISSEMENT_CARACTERES,
     SEUIL_ENORME_CARACTERES,
+    SEUIL_LIMITE_TECHNIQUE_CARACTERES,
     UPLOADS_DIR,
 )
 from core.db import init_db
@@ -73,14 +74,29 @@ def _executer_generation_ia(cle: str, action):
 
     En cas de succès : efface le cooldown et rafraîchit la page.
     En cas d'échec : démarre un cooldown (pour empêcher de recliquer tout de suite,
-    ce qui aggraverait un ralentissement passager) et affiche l'erreur."""
+    ce qui aggraverait un ralentissement passager), et RETIENT le message d'erreur
+    en session (sinon le compte à rebours du cooldown, qui rafraîchit la page chaque
+    seconde, l'efface presque aussitôt affiché)."""
     try:
         action()
         signaler_succes(cle)
+        st.session_state.pop(f"derniere_erreur_{cle}", None)
         st.rerun()
     except Exception as e:
         signaler_echec(cle)
-        st.error(f"Erreur : {message_utilisateur_mistral(e)}")
+        st.session_state[f"derniere_erreur_{cle}"] = message_utilisateur_mistral(e)
+        st.rerun()
+
+
+def _afficher_cooldown(cle: str, peut: bool, restant: int):
+    """Affiche le compte à rebours et, s'il y en a une, la dernière erreur rencontrée
+    (voir _executer_generation_ia pour pourquoi elle est stockée en session)."""
+    if peut:
+        return
+    st.caption(f"Patiente {restant}s avant de recliquer (évite d'aggraver un ralentissement de l'IA).")
+    derniere_erreur = st.session_state.get(f"derniere_erreur_{cle}")
+    if derniere_erreur:
+        st.error(f"Erreur : {derniere_erreur}")
 
 
 def _avertir_si_cours_volumineux():
@@ -88,7 +104,14 @@ def _avertir_si_cours_volumineux():
     génération (tout le texte envoyé en un seul appel, jamais découpé) prendra plus
     longtemps à répondre pour un cours énorme."""
     texte_cours = repository.texte_complet_du_cours(cours_id)
-    if len(texte_cours) > SEUIL_ENORME_CARACTERES:
+    if len(texte_cours) > SEUIL_LIMITE_TECHNIQUE_CARACTERES:
+        st.error(
+            "Ce cours dépasse la limite technique de l'IA (trop de texte pour être "
+            "lu en une seule fois) : la génération va très probablement échouer. "
+            "**Il faut diviser ce cours en plusieurs cours plus petits** (par "
+            "chapitre, par exemple) — réessayer ne suffira pas."
+        )
+    elif len(texte_cours) > SEUIL_ENORME_CARACTERES:
         st.warning(
             "Ce cours est énorme (l'équivalent d'un manuel entier) : une seule "
             "génération peut prendre nettement plus longtemps que d'habitude. "
@@ -197,8 +220,7 @@ with tab_synthese:
                     cle_cooldown,
                     lambda: generer_et_sauver_synthese(cours_id, identifiant),
                 )
-    if not peut:
-        st.caption(f"Patiente {restant}s avant de recliquer (évite d'aggraver un ralentissement de l'IA).")
+    _afficher_cooldown(cle_cooldown, peut, restant)
 
     if not synthese:
         st.info("Pas encore de synthèse. Ajoute des documents puis clique sur « Générer ».")
@@ -239,8 +261,7 @@ with tab_quiz:
                         cle_cooldown,
                         lambda: generer_quiz(cours_id, identifiant, "diagnostique"),
                     )
-            if not peut:
-                st.caption(f"Patiente {restant}s avant de recliquer.")
+            _afficher_cooldown(cle_cooldown, peut, restant)
         elif not tentative_avant:
             if st.button("Passer le quiz (avant révision)"):
                 st.session_state["quiz_id"] = quiz_diag["id"]
@@ -281,8 +302,7 @@ with tab_quiz:
                         cle_cooldown,
                         lambda: generer_quiz(cours_id, identifiant, "examen_blanc"),
                     )
-            if not peut:
-                st.caption(f"Patiente {restant}s avant de recliquer.")
+            _afficher_cooldown(cle_cooldown, peut, restant)
         else:
             with col2:
                 if st.button("Régénérer", key="regenerer_examen", disabled=not peut):
@@ -291,8 +311,7 @@ with tab_quiz:
                             cle_cooldown,
                             lambda: generer_quiz(cours_id, identifiant, "examen_blanc"),
                         )
-            if not peut:
-                st.caption(f"Patiente {restant}s avant de recliquer.")
+            _afficher_cooldown(cle_cooldown, peut, restant)
 
             if st.button("Passer l'examen blanc"):
                 st.session_state["quiz_id"] = quiz_examen["id"]

@@ -1,6 +1,7 @@
 """Orchestration : texte des documents d'un cours -> IA -> fiche de synthèse sauvegardée."""
 
 from core import repository
+from core.config import SEUIL_LIMITE_TECHNIQUE_CARACTERES
 from core.mistral_client import generer_json
 from core.prompts import prompt_synthese
 
@@ -25,6 +26,17 @@ def generer_et_sauver_synthese(cours_id: int, proprietaire: str) -> dict:
         raise ValueError(
             "Aucun texte n'a encore été extrait pour ce cours. "
             "Ajoute au moins un document et attends la fin de son extraction."
+        )
+
+    if len(texte) > SEUIL_LIMITE_TECHNIQUE_CARACTERES:
+        # Vérifié avant d'appeler l'IA : au-delà de ce seuil, l'appel échoue de toute
+        # façon (limite de contexte du modèle) — parfois vite (erreur nette), parfois
+        # après une longue attente (timeout). Autant échouer tout de suite avec un
+        # message clair plutôt que de faire attendre l'utilisateur pour rien.
+        raise ValueError(
+            "Ce cours est trop volumineux pour être traité en une seule fois par "
+            "l'IA (il dépasse sa limite technique). Divise-le en plusieurs cours "
+            "plus petits (par chapitre, par exemple) — réessayer ne suffira pas."
         )
 
     prompt = prompt_synthese(cours["nom"], texte)

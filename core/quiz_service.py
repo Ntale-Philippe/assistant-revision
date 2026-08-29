@@ -5,6 +5,7 @@ from core.config import (
     DUREE_EXAMEN_MINUTES,
     NB_QUESTIONS_DIAGNOSTIQUE,
     NB_QUESTIONS_EXAMEN,
+    SEUIL_LIMITE_TECHNIQUE_CARACTERES,
 )
 from core.mistral_client import generer_json
 from core.prompts import prompt_quiz
@@ -22,6 +23,13 @@ def generer_quiz(cours_id: int, proprietaire: str, type_quiz: str) -> int:
         raise ValueError(
             "Aucun texte n'a encore été extrait pour ce cours. "
             "Ajoute au moins un document avant de générer un quiz."
+        )
+
+    if len(texte) > SEUIL_LIMITE_TECHNIQUE_CARACTERES:
+        raise ValueError(
+            "Ce cours est trop volumineux pour être traité en une seule fois par "
+            "l'IA (il dépasse sa limite technique). Divise-le en plusieurs cours "
+            "plus petits (par chapitre, par exemple) — réessayer ne suffira pas."
         )
 
     if type_quiz == "examen_blanc":

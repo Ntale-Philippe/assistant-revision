@@ -70,13 +70,23 @@ def _avec_reessai(appel):
 def message_utilisateur(erreur: Exception) -> str:
     """Transforme une erreur technique en message compréhensible pour l'utilisateur
     (sans préfixe "Erreur" : à ajouter par l'appelant selon le contexte)."""
+    texte = str(erreur)
+    if "context length" in texte.lower() or "prompt_too_long" in texte.lower():
+        # Le cours dépasse la limite technique de contexte de l'IA (un cours énorme,
+        # genre plusieurs centaines de pages) : réessayer ne changera rien, il faut
+        # diviser le cours.
+        return (
+            "ce cours est trop volumineux pour être traité en une seule fois par "
+            "l'IA (il dépasse sa limite technique). Divise-le en plusieurs cours "
+            "plus petits (par chapitre, par exemple) — réessayer ne suffira pas."
+        )
     if _est_erreur_temporaire(erreur):
         return (
             "les serveurs de l'IA sont temporairement surchargés ou mettent trop de "
             "temps à répondre (l'appli a déjà réessayé plusieurs fois automatiquement). "
             "Patiente une minute et réessaie."
         )
-    return str(erreur)
+    return texte
 
 
 def generer_json(prompt: str) -> dict:

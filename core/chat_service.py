@@ -1,6 +1,7 @@
 """Orchestration de la discussion libre sur un cours."""
 
 from core import repository
+from core.config import SEUIL_LIMITE_TECHNIQUE_CARACTERES
 from core.mistral_client import repondre_chat
 from core.prompts import prompt_contexte_chat
 
@@ -15,6 +16,13 @@ def poser_question(cours_id: int, proprietaire: str, question: str) -> str:
         raise ValueError(
             "Aucun texte n'a encore été extrait pour ce cours. "
             "Ajoute au moins un document avant de poser une question."
+        )
+
+    if len(texte) > SEUIL_LIMITE_TECHNIQUE_CARACTERES:
+        raise ValueError(
+            "Ce cours est trop volumineux pour que l'IA puisse répondre (il dépasse "
+            "sa limite technique). Divise-le en plusieurs cours plus petits (par "
+            "chapitre, par exemple)."
         )
 
     historique = [

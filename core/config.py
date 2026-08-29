@@ -31,6 +31,11 @@ SEUIL_AVERTISSEMENT_CARACTERES = 30_000
 # qu'on recommande activement de le diviser en plusieurs cours (par chapitre par
 # exemple), pour ne pas risquer d'épuiser le quota gratuit du jour à lui seul.
 SEUIL_ENORME_CARACTERES = 300_000
+# Au-delà de ce seuil, la génération ÉCHOUERA quasi certainement : ça dépasse la
+# limite technique de contexte du modèle Mistral utilisé (mesuré empiriquement :
+# ~984 000 caractères de contenu ont produit un prompt de 273 940 tokens contre une
+# limite de 262 144 — marge de sécurité prise ici).
+SEUIL_LIMITE_TECHNIQUE_CARACTERES = 850_000
 
 # Extensions de fichiers acceptées à l'upload (V1 : texte + images/PDF, audio prévu pour plus tard)
 # Séparées en deux groupes : sur Android, mélanger images et autres fichiers dans une
