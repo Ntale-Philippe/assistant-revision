@@ -58,3 +58,9 @@ col6.metric(
     "Score moyen (tous)",
     f"{globales['score_moyen_pourcentage']}%" if globales["score_moyen_pourcentage"] is not None else "—",
 )
+
+st.metric("Pays représentés", globales["nb_pays_representes"])
+st.caption(
+    "Basé sur les pays renseignés dans « Personnalise l'appli » sur l'accueil — "
+    "pas de détail par pays ici, juste le nombre total."
+)

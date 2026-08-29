@@ -103,3 +103,30 @@ if insights["repartition_pays"]:
         {"Pays": list(insights["repartition_pays"].keys()), "Étudiants": list(insights["repartition_pays"].values())}
     ).sort_values("Étudiants", ascending=False)
     st.bar_chart(df_pays.set_index("Pays"))
+
+    total_etudiants = df_pays["Étudiants"].sum()
+    pays_principal = df_pays.iloc[0]
+    st.write(
+        f"**Pays principal : {pays_principal['Pays']}** — {pays_principal['Étudiants']} étudiant(s) "
+        f"({round(100 * pays_principal['Étudiants'] / total_etudiants)}% du total)"
+    )
+
+    detail = insights["detail_par_pays"]
+    df_detail = pd.DataFrame(
+        [
+            {
+                "Pays": pays,
+                "Étudiants": d["nb_etudiants"],
+                "Cours créés": d["nb_cours"],
+                "Cours complets (synthèse + quiz)": d["nb_complets"],
+                "Taux de complétion": f"{d['taux_completion']}%",
+            }
+            for pays, d in detail.items()
+        ]
+    ).sort_values("Étudiants", ascending=False)
+    st.dataframe(df_detail, hide_index=True, use_container_width=True)
+    st.caption(
+        "Le taux de complétion aide à repérer si un pays galère plus que les autres "
+        "(connexion, appareils...) — un taux bas avec plusieurs cours peut valoir le coup "
+        "d'être creusé."
+    )

@@ -404,6 +404,12 @@ def statistiques_globales() -> dict:
                 )""",
             _IDENTIFIANTS_EXCLUS,
         ).fetchall()
+        nb_pays = conn.execute(
+            f"""SELECT COUNT(DISTINCT pays) as n FROM profils
+                WHERE pays IS NOT NULL AND pays != ''
+                  AND identifiant IN (SELECT DISTINCT proprietaire FROM cours WHERE proprietaire NOT IN ({placeholders}))""",
+            _IDENTIFIANTS_EXCLUS,
+        ).fetchone()["n"]
 
     nb_tentatives = len(tentatives)
     score_moyen = (
@@ -418,6 +424,7 @@ def statistiques_globales() -> dict:
         "nb_syntheses": nb_syntheses,
         "nb_tentatives": nb_tentatives,
         "score_moyen_pourcentage": score_moyen,
+        "nb_pays_representes": nb_pays,
     }
 
 
@@ -445,6 +452,7 @@ def insights_admin() -> dict:
                 "SELECT nom_original, statut_extraction FROM documents WHERE cours_id = ?", (c["id"],)
             ).fetchall()
             if not docs:
+                c["statut"] = "vide"
                 cours_vides.append(c)
                 continue
             for d in docs:
@@ -457,6 +465,7 @@ def insights_admin() -> dict:
                 "SELECT 1 FROM syntheses WHERE cours_id = ? LIMIT 1", (c["id"],)
             ).fetchone()
             if not a_une_synthese:
+                c["statut"] = "sans_synthese"
                 cours_sans_synthese.append(c)
                 continue
 
@@ -464,7 +473,10 @@ def insights_admin() -> dict:
                 "SELECT 1 FROM quiz WHERE cours_id = ? LIMIT 1", (c["id"],)
             ).fetchone()
             if not a_un_quiz:
+                c["statut"] = "sans_quiz"
                 cours_sans_quiz.append(c)
+            else:
+                c["statut"] = "complet"
 
         # Score moyen par type de quiz (diagnostique/examen_blanc/reponse_ecrite)
         scores_par_type = {}
@@ -511,6 +523,20 @@ def insights_admin() -> dict:
             pays = (pays_par_identifiant.get(identifiant) or "").strip() or "Non renseigné"
             repartition_pays[pays] = repartition_pays.get(pays, 0) + 1
 
+        # Détail par pays : au-delà du simple décompte d'étudiants, le taux de
+        # cours menés à terme (synthèse + quiz) par pays — utile pour repérer si
+        # un pays en particulier galère plus que les autres (réseau, appareils...).
+        detail_par_pays = {}
+        for c in cours:
+            pays = (pays_par_identifiant.get(c["proprietaire"]) or "").strip() or "Non renseigné"
+            d = detail_par_pays.setdefault(pays, {"nb_cours": 0, "nb_complets": 0, "etudiants": set()})
+            d["nb_cours"] += 1
+            d["nb_complets"] += 1 if c["statut"] == "complet" else 0
+            d["etudiants"].add(c["proprietaire"])
+        for pays, d in detail_par_pays.items():
+            d["nb_etudiants"] = len(d.pop("etudiants"))
+            d["taux_completion"] = round(100 * d["nb_complets"] / d["nb_cours"]) if d["nb_cours"] else 0
+
     return {
         "nb_cours_total": len(cours),
         "cours_vides": cours_vides,
@@ -520,4 +546,5 @@ def insights_admin() -> dict:
         "scores_par_type": scores_par_type,
         "cours_par_jour": cours_par_jour,
         "repartition_pays": repartition_pays,
+        "detail_par_pays": detail_par_pays,
     }
