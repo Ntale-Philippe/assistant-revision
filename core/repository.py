@@ -6,18 +6,8 @@ sans toucher aux pages.
 """
 
 import json
-import secrets as _secrets
-import string
 
 from core.db import get_connection
-
-_ALPHABET_CODE = "".join(c for c in string.ascii_uppercase + string.digits if c not in "0O1I")
-
-
-def generer_code_licence() -> str:
-    """Génère un code de licence lisible, du style AB3F-K9QZ-7TMN."""
-    brut = "".join(_secrets.choice(_ALPHABET_CODE) for _ in range(12))
-    return "-".join(brut[i : i + 4] for i in range(0, 12, 4))
 
 # --- Cours -----------------------------------------------------------------
 # Chaque cours appartient à un "proprietaire" (le prénom/pseudo de la personne).
@@ -207,111 +197,6 @@ def derniere_tentative(quiz_id: int, phase: str) -> dict | None:
             (quiz_id, phase),
         ).fetchone()
         return dict(row) if row else None
-
-
-# --- Licences ----------------------------------------------------------------
-# Un code de licence est créé par le vendeur (page Administration) après un paiement,
-# puis donné au client. Sans un code valide, personne ne peut entrer dans l'appli
-# en mode partagé : c'est la vraie barrière de paiement.
-
-def creer_licence(
-    code: str, note: str = "", duree_jours: int = 30,
-    montant: float | None = None, devise: str = "USD", contact: str = "",
-) -> None:
-    with get_connection() as conn:
-        conn.execute(
-            """INSERT INTO licences (code, statut, note, duree_jours, montant, devise, contact)
-               VALUES (?, 'disponible', ?, ?, ?, ?, ?)""",
-            (code, note, duree_jours, montant, devise, contact),
-        )
-
-
-def obtenir_licence(code: str) -> dict | None:
-    """Recherche insensible à la casse. Ajoute un champ calculé 'expiree' (0 ou 1)."""
-    with get_connection() as conn:
-        row = conn.execute(
-            """SELECT *, (expire_le IS NOT NULL AND expire_le < datetime('now')) AS expiree
-               FROM licences WHERE UPPER(code) = UPPER(?)""",
-            (code,),
-        ).fetchone()
-        return dict(row) if row else None
-
-
-def activer_licence(code: str, prenom_client: str) -> None:
-    """Marque une licence 'disponible' comme attribuée à ce prénom, la première fois
-    qu'elle est utilisée avec succès, et démarre son compte à rebours (duree_jours).
-    Ne fait rien si elle est déjà attribuée (le décompte ne redémarre pas à chaque connexion)."""
-    with get_connection() as conn:
-        conn.execute(
-            """UPDATE licences SET statut = 'attribuee', prenom_client = ?,
-               activee_le = datetime('now'),
-               expire_le = datetime('now', '+' || duree_jours || ' days')
-               WHERE UPPER(code) = UPPER(?) AND statut = 'disponible'""",
-            (prenom_client, code),
-        )
-
-
-def prolonger_licence(code: str, jours: int | None = None) -> None:
-    """Prolonge une licence après un nouveau paiement. Repart de la date d'expiration
-    actuelle si elle n'est pas encore dépassée (le client ne perd aucun jour payé
-    d'avance), sinon repart d'aujourd'hui. Si `jours` n'est pas précisé, réutilise la
-    durée d'origine de la licence (sa colonne duree_jours)."""
-    with get_connection() as conn:
-        if jours is None:
-            conn.execute(
-                """UPDATE licences SET
-                   expire_le = datetime(
-                       CASE WHEN expire_le IS NOT NULL AND expire_le > datetime('now')
-                            THEN expire_le ELSE datetime('now') END,
-                       '+' || duree_jours || ' days'
-                   ),
-                   statut = 'attribuee'
-                   WHERE UPPER(code) = UPPER(?)""",
-                (code,),
-            )
-        else:
-            conn.execute(
-                """UPDATE licences SET
-                   expire_le = datetime(
-                       CASE WHEN expire_le IS NOT NULL AND expire_le > datetime('now')
-                            THEN expire_le ELSE datetime('now') END,
-                       '+' || ? || ' days'
-                   ),
-                   statut = 'attribuee'
-                   WHERE UPPER(code) = UPPER(?)""",
-                (jours, code),
-            )
-
-
-def lister_licences() -> list[dict]:
-    with get_connection() as conn:
-        rows = conn.execute(
-            """SELECT *,
-                      (expire_le IS NOT NULL AND expire_le < datetime('now')) AS expiree,
-                      CAST(ROUND(julianday(expire_le) - julianday('now')) AS INTEGER) AS jours_restants
-               FROM licences ORDER BY created_at DESC"""
-        ).fetchall()
-        licences = [dict(r) for r in rows]
-        for l in licences:
-            l["a_relancer"] = bool(l["expiree"]) or (
-                l["jours_restants"] is not None and l["jours_restants"] <= 5
-            )
-        return licences
-
-
-def revoquer_licence(code: str) -> None:
-    with get_connection() as conn:
-        conn.execute(
-            "UPDATE licences SET statut = 'revoquee' WHERE UPPER(code) = UPPER(?)", (code,)
-        )
-
-
-def reactiver_licence(code: str) -> None:
-    with get_connection() as conn:
-        conn.execute(
-            "UPDATE licences SET statut = 'attribuee' WHERE UPPER(code) = UPPER(?) AND statut = 'revoquee'",
-            (code,),
-        )
 
 
 # --- Chat (discussion libre sur un cours) ------------------------------------

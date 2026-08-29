@@ -4,53 +4,42 @@ Deux modes, gérés automatiquement :
 - Mode "solo" (usage local sur son propre PC) : une clé Gemini est déjà présente dans
   .streamlit/secrets.toml, aucune identification n'est demandée. Tout est stocké sous
   l'identifiant constant PROPRIETAIRE_SOLO.
-- Mode "partagé" (appli hébergée en ligne, vendue à plusieurs personnes) : chacun a
-  besoin d'un code de licence valide (créé par le vendeur depuis la page Administration
-  après un paiement), de son prénom, et de sa propre clé Gemini gratuite. Le code de
-  licence est la vraie barrière de paiement : sans lui, impossible d'entrer.
+- Mode "partagé" (appli hébergée en ligne) : chacun donne juste son prénom et sa
+  propre clé Gemini gratuite. Pas de compte, pas de code, pas de mot de passe —
+  l'appli est gratuite pour l'instant, le temps de valider qu'elle aide vraiment les
+  étudiants avant d'introduire un jour un modèle payant.
 
-Mémorisation dans st.session_state pour toute la durée de la visite : ça évite de
-redemander l'identification à chaque changement d'onglet (Documents / Quiz /
-Progression...), puisque Streamlit ne conserve pas tout seul les paramètres d'URL
-d'une page à l'autre. Pour retrouver son espace lors d'une prochaine visite (après
-avoir fermé le navigateur), la personne réutilise son lien personnel — voir
-lien_personnel() plus bas.
+L'identifiant qui sépare les données de chacun en base est dérivé de la clé Gemini
+elle-même (un hash) : deux clés étant pour ainsi dire toujours différentes, ça suffit
+à garantir que personne ne voit les cours de quelqu'un d'autre, sans avoir besoin
+d'un champ supplémentaire à saisir.
 """
+
+import hashlib
 
 import streamlit as st
 
-from core import repository
 from core.config import get_api_key
 
 PROPRIETAIRE_SOLO = "moi"
 
 
-def _normaliser_code(code: str) -> str:
-    return code.strip().lower()
+def _identifiant_depuis_cle(cle: str) -> str:
+    return hashlib.sha256(cle.strip().encode()).hexdigest()[:20]
 
 
 def get_identity() -> tuple[str | None, str | None, str | None]:
-    """Retourne (identifiant, prenom_affiche, cle_api) si connus, sinon (None, None, None).
-
-    L'identifiant utilisé pour séparer les données en base est le code de licence
-    lui-même (normalisé) : il est unique et attribué par le vendeur, contrairement au
-    prénom qui n'est là que pour l'affichage ("Bonjour Alice")."""
+    """Retourne (identifiant, prenom_affiche, cle_api) si connus, sinon (None, None, None)."""
     if "identite" in st.session_state:
         return st.session_state["identite"]
 
     moi = st.query_params.get("moi", "").strip()
-    code = _normaliser_code(st.query_params.get("acces", ""))
     cle_url = st.query_params.get("cle", "").strip()
 
-    if moi and code and cle_url:
-        licence = repository.obtenir_licence(code)
-        if licence and licence["statut"] in ("disponible", "attribuee"):
-            if licence["expiree"]:
-                return "expiree", moi, cle_url  # sentinelle : jamais mise en cache
-            resultat = (code, moi, cle_url)
-            st.session_state["identite"] = resultat
-            return resultat
-        return "invalide", moi, cle_url  # sentinelle : jamais mise en cache
+    if moi and cle_url:
+        resultat = (_identifiant_depuis_cle(cle_url), moi, cle_url)
+        st.session_state["identite"] = resultat
+        return resultat
 
     if not moi:
         cle_secrets = get_api_key()
@@ -66,35 +55,19 @@ def get_identity() -> tuple[str | None, str | None, str | None]:
 def exiger_identification() -> tuple[str, str, str]:
     """Renvoie (identifiant, prenom_affiche, cle_api) de la personne courante.
 
-    Si l'identité n'est pas encore connue (ou que le code de licence n'est pas valide),
-    affiche un petit formulaire de bienvenue et arrête l'exécution de la page (st.stop())
-    en attendant que la personne le remplisse avec un code valide.
+    Si l'identité n'est pas encore connue, affiche un petit formulaire de bienvenue
+    et arrête l'exécution de la page (st.stop()) en attendant que la personne le
+    remplisse.
     """
     identifiant, prenom, cle_api = get_identity()
-
-    if identifiant == "invalide":
-        st.error(
-            "Ce code d'accès n'est pas valide ou a été désactivé. "
-            "Contacte la personne qui te l'a fourni."
-        )
-        st.stop()
-
-    if identifiant == "expiree":
-        st.error(
-            "Ton accès a expiré. Contacte la personne qui te l'a fourni pour le renouveler."
-        )
-        st.stop()
-
     if identifiant and cle_api:
-        if identifiant != PROPRIETAIRE_SOLO:
-            repository.activer_licence(identifiant, prenom)
         return identifiant, prenom, cle_api
 
     st.title("Bienvenue")
-    st.write(
-        "Avant de commencer, indique ton prénom, le code d'accès que tu as reçu après "
-        "ton paiement, et ta propre clé Gemini gratuite."
-    )
+    st.write("Avant de commencer, indique ton prénom et ta propre clé Gemini gratuite.")
+
+    st.page_link("pages/6_Demo.py", label="Voir un exemple sans rien remplir")
+
     st.info(
         "Pas encore de clé ? Va sur https://aistudio.google.com/apikey, connecte-toi "
         "avec ton compte Google, puis clique sur **\"Create API key\"** → "
@@ -103,29 +76,22 @@ def exiger_identification() -> tuple[str, str, str]:
 
     with st.form("identification_form"):
         nom = st.text_input("Ton prénom", placeholder="Ex : Alice")
-        code_saisi = st.text_input(
-            "Ton code d'accès",
-            placeholder="Reçu après ton paiement",
-            help="Fourni uniquement après paiement. Sans ce code, impossible d'entrer.",
-        )
         cle = st.text_input("Ta clé API Gemini", type="password", placeholder="AIza...")
         ok = st.form_submit_button("Commencer")
         if ok:
-            if nom.strip() and code_saisi.strip() and cle.strip():
+            if nom.strip() and cle.strip():
                 st.query_params["moi"] = nom.strip()
-                st.query_params["acces"] = code_saisi.strip()
                 st.query_params["cle"] = cle.strip()
                 st.rerun()
             else:
-                st.error("Les trois champs sont obligatoires.")
+                st.error("Les deux champs sont obligatoires.")
 
     st.page_link("pages/5_Conditions.py", label="Conditions d'utilisation")
 
     st.caption(
-        "Astuce : une fois connecté, tu n'auras plus à ressaisir ça en changeant "
-        "d'onglet pendant cette visite. Pour retrouver ton espace la prochaine fois "
-        "sans tout retaper, garde ton lien personnel (affiché sur la page d'accueil "
-        "une fois connecté) en favori."
+        "Astuce : une fois connecté, ton navigateur garde ça en mémoire pour toute la "
+        "visite. Pour revenir plus tard sans tout retaper, mets en favori le lien "
+        "personnel affiché sur la page d'accueil."
     )
 
     st.stop()
@@ -137,8 +103,8 @@ def oublier_identite():
     st.query_params.clear()
 
 
-def lien_personnel(prenom: str, code_acces: str, cle_api: str) -> str:
+def lien_personnel(prenom: str, cle_api: str) -> str:
     """Construit le lien à mettre en favori pour retrouver son espace personnel."""
     from urllib.parse import quote
 
-    return f"?moi={quote(prenom)}&acces={quote(code_acces)}&cle={quote(cle_api)}"
+    return f"?moi={quote(prenom)}&cle={quote(cle_api)}"

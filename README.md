@@ -41,9 +41,15 @@ retourne dans le terminal et appuie sur `Ctrl + C`.
 7. Teste-toi en conditions réelles avec l'examen blanc chronométré
 
 Toutes tes données (cours, documents, scores) restent uniquement sur ton ordinateur,
-dans le dossier `data/`.
+dans le dossier `data/`. Une page `/Demo` (accessible sans identification) montre un
+exemple déjà prêt (cours de macroéconomie) — pratique pour montrer l'appli à quelqu'un
+sans qu'il ait besoin de créer sa clé Gemini avant d'avoir vu ce que ça donne.
 
-## 4. Base de données permanente (Turso) — indispensable avant de vendre
+**État actuel : l'appli est gratuite pour tout le monde** (chacun apporte juste sa
+propre clé Gemini gratuite). L'idée est de valider que ça aide vraiment les étudiants
+avant d'introduire un jour un modèle payant.
+
+## 4. Base de données permanente (Turso) — recommandé si tu la mets en ligne
 
 En local, tes données vivent dans `data/app.db`, un simple fichier sur ton PC. Mais une
 fois l'appli hébergée en ligne (étape 5), cet hébergement gratuit peut effacer ce
@@ -69,7 +75,7 @@ branche l'appli sur une vraie base de données qui, elle, ne s'efface jamais :
 Aucune installation supplémentaire n'est nécessaire : l'appli parle à Turso directement
 par le web (rien à compiler, ça marche sur n'importe quelle machine).
 
-## 5. Mettre en ligne pour vendre ou partager (gratuit, sans que ton PC reste allumé)
+## 5. Mettre en ligne pour partager (gratuit, sans que ton PC reste allumé)
 
 L'appli sait fonctionner en **mode partagé** : plusieurs personnes peuvent l'utiliser
 en même temps, chacune avec ses propres cours (invisibles pour les autres, y compris
@@ -96,51 +102,22 @@ et voulu : l'appli hébergée n'a besoin d'aucune clé "globale", chacun apporte
 
 Une fois en ligne, ajoute dans les secrets de ton appli sur share.streamlit.io (section
 "Secrets" des paramètres de l'appli) les **mêmes valeurs** que dans ton
-`.streamlit/secrets.toml` local (clé Gemini si tu veux garder un accès solo, mot de
-passe administrateur, et surtout `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` de l'étape 4
-— sans elles en ligne, l'appli hébergée repartirait sur un fichier local non permanent) :
+`.streamlit/secrets.toml` local — surtout `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` de
+l'étape 4 (sans elles en ligne, l'appli hébergée repartirait sur un fichier local non
+permanent) :
 ```toml
-ADMIN_PASSWORD = "un mot de passe que toi seul connais"
 TURSO_DATABASE_URL = "libsql://ton-nom-de-base.turso.io"
 TURSO_AUTH_TOKEN = "ton-jeton-ici"
 ```
 
-## 6. Vendre l'accès (codes de licence)
+⚠️ Ne mets **pas** `GEMINI_API_KEY` dans les secrets de l'appli en ligne : ça
+donnerait à tout le monde un accès "solo" sans même passer par l'écran
+d'identification. Chacun doit apporter sa propre clé.
 
-Personne ne peut entrer dans l'appli en mode partagé sans un **code de licence**
-généré par toi. C'est ta vraie barrière de paiement — sans elle, n'importe qui pourrait
-utiliser le lien gratuitement avec sa propre clé Gemini.
+## 6. Remettre un modèle payant plus tard
 
-1. Un client te contacte et te paie (par le moyen de ton choix, en dehors de l'appli).
-2. Tu vas sur `https://tonapp.streamlit.app/Administration`, tu entres ton mot de passe
-   administrateur.
-3. Tu cliques sur **"Générer un code"** (avec une note pour te souvenir de qui c'est).
-4. Tu envoies au client : le lien de l'appli + le code généré, et tu lui rappelles
-   d'aller chercher sa propre clé Gemini gratuite (étape 1 de ce README).
-5. Le client entre son prénom, le code que tu lui as donné, et sa clé — il est alors
-   dans l'appli, avec son espace privé.
-
-Si un code fuite ou est partagé sans ton accord, tu peux le **révoquer** à tout moment
-depuis la page Administration : la personne sera bloquée dès sa prochaine visite.
-
-Il n'y a pas de "code oublié" : si un client perd à la fois son lien personnel et son
-code, il doit te recontacter pour qu'un nouveau code lui soit fourni. Préviens-en tes clients.
-
-### Accès limité dans le temps (abonnement)
-
-Chaque code a une durée (30 jours par défaut, modifiable au moment de le générer — mets
-par exemple ~120 jours pour un accès "semestre"). Le compte à rebours démarre à la
-**première utilisation** du code par le client, pas à sa génération. Une fois le délai
-écoulé, l'accès se coupe automatiquement, sans rien à faire de ton côté.
-
-Quand un client repaie pour continuer, retourne sur `/Administration` et clique
-**"Renouveler"** sur son code existant : ça prolonge son accès sans qu'il ait besoin de
-changer de lien ni de ressaisir quoi que ce soit.
-
-### Suivi de tes ventes (Excel)
-
-En générant un code, note aussi le **montant payé**. La page Administration affiche un
-avertissement listant les clients **à relancer** (accès expiré ou qui va expirer sous
-5 jours). L'onglet **"Export Excel"** te permet de télécharger un fichier `.xlsx` avec
-tout le détail (client, montant, durée, dates, jours restants, qui relancer) —
-pratique pour un suivi comptable ou pour partager un état des lieux.
+Le système de codes de licence (génération, expiration, renouvellement, export Excel
+des ventes) a été retiré pour l'instant, le temps de valider que l'appli aide
+vraiment les étudiants en la rendant gratuite. Il reste dans l'historique Git de ce
+projet (page `Administration`, `core/export_service.py`, table `licences`) et pourra
+être réintroduit quand l'envie de faire payer reviendra.

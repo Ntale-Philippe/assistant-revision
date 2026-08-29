@@ -33,11 +33,11 @@ if identifiant != PROPRIETAIRE_SOLO:
             "changeant d'onglet. Mais si tu fermes le navigateur, il te faudra ce lien "
             "pour retrouver ton espace la prochaine fois — mets-le en favori maintenant :"
         )
-        st.code(lien_personnel(prenom, identifiant, api_key), language=None)
+        st.code(lien_personnel(prenom, api_key), language=None)
         st.caption(
-            "Ne partage jamais ce lien précis : il contient ton code d'accès et ta clé "
-            "API personnelle. Garde-le aussi de ton côté : sans lui, personne (pas même "
-            "nous) ne peut retrouver tes cours."
+            "Ne partage jamais ce lien précis : il contient ta clé API personnelle. "
+            "Garde-le aussi de ton côté : sans lui, personne (pas même nous) ne peut "
+            "retrouver tes cours."
         )
 
 st.divider()
@@ -108,8 +108,8 @@ with st.expander("Confidentialité"):
         "analysé (résumés, quiz) — c'est le seul endroit où il transite. "
         "Personne d'autre utilisant cette appli ne peut voir tes cours, tes documents "
         "ou tes résultats. Tes données restent accessibles uniquement avec la "
-        "combinaison de ton prénom et de ton code d'accès personnel : il n'existe pas "
-        "de procédure de récupération si tu perds les deux."
+        "combinaison de ton prénom et de ta clé API : il n'existe pas de procédure de "
+        "récupération si tu perds ton lien personnel et ta clé."
     )
 
 st.page_link("pages/5_Conditions.py", label="Conditions d'utilisation")

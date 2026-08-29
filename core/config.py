@@ -13,6 +13,9 @@ UPLOADS_DIR = DATA_DIR / "uploads"
 # Modèle Gemini utilisé (rapide et gratuit dans le tier gratuit de Google AI Studio)
 GEMINI_MODEL = "gemini-3.6-flash"
 
+# Identifiant réservé au cours de démonstration publique (aucune inscription requise).
+IDENTIFIANT_DEMO = "demo-public"
+
 # Nombre de questions par type de quiz
 NB_QUESTIONS_DIAGNOSTIQUE = 8
 NB_QUESTIONS_EXAMEN = 15

@@ -18,34 +18,22 @@ l'utilisateur (notes, PDF, images) : génération d'une fiche de synthèse, de q
 et d'une discussion libre avec une intelligence artificielle (Google Gemini).
 Date de dernière mise à jour: 28/08/2026
 
-### 2. Accès et compte
+### 2. Accès
 
-L'accès à l'appli se fait avec un prénom, un code d'accès personnel fourni par le
-vendeur après paiement, et une clé API Gemini propre à chaque utilisateur (gratuite,
-à créer soi-même sur Google AI Studio). Ce code est **personnel et non transférable** :
-le vendeur peut le désactiver s'il constate un partage non autorisé.
+L'accès à l'appli se fait avec un prénom et une clé API Gemini propre à chaque
+utilisateur (gratuite, à créer soi-même sur Google AI Studio). L'appli est
+actuellement gratuite ; ces conditions seront mises à jour si un modèle payant
+est introduit par la suite.
 
-### 3. Durée et renouvellement
-
-Chaque code a une durée d'accès définie au moment de l'achat (par exemple un mois ou
-un semestre). Passé ce délai, l'accès est automatiquement suspendu. Le renouvellement
-se fait en recontactant le vendeur.
-
-### 4. Paiement
-
-Le paiement s'effectue directement auprès du vendeur, par le moyen convenu avec lui
-(l'application elle-même ne traite aucun paiement). Les modalités de remboursement,
-le cas échéant, sont à discuter au cas par cas directement avec le vendeur.
-
-### 5. Données et confidentialité
+### 3. Données et confidentialité
 
 Le contenu des documents déposés est envoyé à l'API Google Gemini pour être analysé ;
 c'est le seul tiers avec lequel ce contenu est partagé. Les données de chaque
 utilisateur (cours, documents, scores, historique de discussion) sont strictement
-privées : aucun autre utilisateur de l'appli, ni le vendeur, n'y a accès. Sans le
-code d'accès et le prénom associés, ces données ne peuvent pas être retrouvées.
+privées : aucun autre utilisateur de l'appli n'y a accès. Sans le lien personnel et
+la clé associés, ces données ne peuvent pas être retrouvées.
 
-### 6. Limites de responsabilité
+### 4. Limites de responsabilité
 
 Cette application dépend de services tiers (Google Gemini pour l'intelligence
 artificielle, Turso pour le stockage des données, Streamlit pour l'hébergement) dont
@@ -54,19 +42,14 @@ artificielle (synthèses, quiz, réponses) peut contenir des erreurs ou des
 approximations : il est fourni à titre d'aide à la révision et ne remplace pas les
 supports de cours officiels ni le jugement de l'étudiant.
 
-### 7. Résiliation
+### 5. Restitution ou suppression des données
 
-Le vendeur se réserve le droit de suspendre ou révoquer un accès en cas d'usage
-abusif, de partage non autorisé du code, ou de non-respect des présentes conditions.
+Sur simple demande via le contact ci-dessous, il est possible d'obtenir un export de
+ses données (contenu de ses cours) ou leur suppression complète.
 
-### 7bis. Restitution des données à la clôture
+### 6. Contact
 
-Sur simple demande via le contact ci-dessous, le vendeur peut fournir un export des
-données d'un utilisateur (ex: contenu de ses cours) avant suppression de son compte.
-
-### 8. Contact
-
-Pour toute question, réclamation ou demande de renouvellement :
+Pour toute question ou réclamation :
 +243 849721720 / assistantrevision@gmail.com
 """
 )
