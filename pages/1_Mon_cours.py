@@ -477,7 +477,14 @@ with tab_chat:
             with st.chat_message("assistant"):
                 with st.spinner("Réflexion..."):
                     try:
-                        reponse = poser_question(cours_id, identifiant, question)
-                        st.markdown(reponse)
+                        poser_question(cours_id, identifiant, question)
+                        # Sans ce rerun, la nouvelle question et sa réponse restaient
+                        # affichées EN DESSOUS du champ de saisie (il est appelé avant
+                        # ce bloc dans le code) jusqu'à la prochaine interaction — le
+                        # champ ne semblait donc pas toujours en bas de la conversation.
+                        # Le rerun relit tout de suite l'historique complet (avec ce
+                        # nouvel échange déjà sauvegardé), qui s'affiche alors bien
+                        # AVANT le champ de saisie, comme attendu.
+                        st.rerun()
                     except Exception as e:
                         st.error(f"Erreur : {message_utilisateur_mistral(e)}")
