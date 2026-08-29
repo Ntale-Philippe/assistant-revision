@@ -48,12 +48,14 @@ def prompt_synthese(nom_cours: str, texte: str, examens_passes: str = "", profil
    fondamentales de CE cours précis à cet objectif personnel : montre concrètement
    comment ce sujet va l'aider dans sa filière et/ou son rêve, pas des généralités qui
    vaudraient pour n'importe quel étudiant (liste à puces, une dizaine d'éléments
-   maximum)."""
+   maximum). Ton chaleureux et encourageant, avec quelques emojis pertinents (sans
+   en abuser)."""
         )
     else:
         consigne_a_retenir = (
             """les notions fondamentales à retenir "pour la vie", au-delà de l'examen
-   (liste à puces, allant à l'essentiel, une dizaine d'éléments maximum)."""
+   (liste à puces, allant à l'essentiel, une dizaine d'éléments maximum). Ton
+   chaleureux et encourageant, avec quelques emojis pertinents (sans en abuser)."""
         )
 
     return f"""Tu es un excellent tuteur universitaire, pédagogue et précis, capable
@@ -80,7 +82,8 @@ Voici tout le contenu extrait des documents du cours "{nom_cours}" :
    une dizaine d'éléments maximum).
 4. "a_retenir" : {consigne_a_retenir}
 5. "fun_facts" : 3 à 5 anecdotes ou faits marquants liés au sujet, pour rendre le
-   cours mémorable.
+   cours mémorable. Ton chaleureux et enjoué, avec quelques emojis pertinents (sans
+   en abuser).
 
 Réponds uniquement avec un objet JSON valide contenant ces 5 clés (chaînes de texte
 en Markdown), sans texte avant ou après."""
