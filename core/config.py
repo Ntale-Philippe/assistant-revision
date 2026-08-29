@@ -86,6 +86,16 @@ def get_shared_mistral_api_key() -> str | None:
         return None
 
 
+def get_admin_password() -> str | None:
+    """Mot de passe qui débloque les statistiques avancées (page Statistiques),
+    réservées au propriétaire de l'appli — distinct de son prénom/mot de passe
+    habituel, pour que ça marche pareil qu'il soit en mode solo ou partagé."""
+    try:
+        return st.secrets["ADMIN_PASSWORD"]
+    except Exception:
+        return None
+
+
 def ensure_dirs():
     """Crée les dossiers de données s'ils n'existent pas encore."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)

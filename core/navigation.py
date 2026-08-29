@@ -13,5 +13,6 @@ def afficher_navigation():
         st.page_link("pages/1_Mon_cours.py", label="Mon cours")
         st.page_link("pages/2_Quiz.py", label="Quiz")
         st.page_link("pages/3_Progression.py", label="Progression")
+        st.page_link("pages/8_Statistiques.py", label="Statistiques")
         st.page_link("pages/6_Demo.py", label="Démo")
         st.page_link("pages/5_Conditions.py", label="Conditions d'utilisation")

@@ -143,7 +143,13 @@ SHARED_MISTRAL_API_KEY = "ta-cle-mistral-ici"
 SHARED_GEMINI_API_KEY = "ta-cle-gemini-ici"
 TURSO_DATABASE_URL = "libsql://ton-nom-de-base.turso.io"
 TURSO_AUTH_TOKEN = "ton-jeton-ici"
+ADMIN_PASSWORD = "invente-un-mot-de-passe-perso"
 ```
+
+`ADMIN_PASSWORD` débloque la section "Statistiques avancées" de la page Statistiques
+(insights sur l'ensemble des étudiants : cours bloqués, échecs de lecture, scores par
+type de quiz...) — invente un mot de passe rien qu'à toi, différent de ton prénom/mot
+de passe habituel.
 
 ⚠️ Ne mets **jamais** `MISTRAL_API_KEY`/`GEMINI_API_KEY` (sans le préfixe SHARED_) dans
 les secrets de l'appli en ligne : ça donnerait à n'importe quel visiteur anonyme un

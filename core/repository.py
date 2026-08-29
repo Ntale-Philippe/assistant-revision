@@ -7,7 +7,13 @@ sans toucher aux pages.
 
 import json
 
+from core.config import IDENTIFIANT_DEMO
 from core.db import get_connection
+
+# Identifiants à exclure des statistiques "vrais étudiants" : le compte solo local
+# du propriétaire et le cours de démonstration publique, qui ne représentent pas
+# de vrais inscrits.
+_IDENTIFIANTS_EXCLUS = ("moi", IDENTIFIANT_DEMO)
 
 # --- Cours -----------------------------------------------------------------
 # Chaque cours appartient à un "proprietaire" (le prénom/pseudo de la personne).
@@ -318,3 +324,180 @@ def lister_messages_chat(cours_id: int) -> list[dict]:
 def vider_chat(cours_id: int) -> None:
     with get_connection() as conn:
         conn.execute("DELETE FROM messages_chat WHERE cours_id = ?", (cours_id,))
+
+
+# --- Statistiques ------------------------------------------------------------
+# Purement des lectures agrégées sur les tables existantes : aucune nouvelle table,
+# aucun impact sur les données. Le compte solo local ('moi') et le cours de
+# démonstration ('demo-public') sont toujours exclus des chiffres "vrais étudiants".
+
+def statistiques_utilisateur(identifiant: str) -> dict:
+    """Chiffres d'un étudiant sur SES propres cours."""
+    with get_connection() as conn:
+        nb_cours = conn.execute(
+            "SELECT COUNT(*) as n FROM cours WHERE proprietaire = ?", (identifiant,)
+        ).fetchone()["n"]
+        nb_documents = conn.execute(
+            """SELECT COUNT(*) as n FROM documents
+               WHERE cours_id IN (SELECT id FROM cours WHERE proprietaire = ?)""",
+            (identifiant,),
+        ).fetchone()["n"]
+        nb_syntheses = conn.execute(
+            """SELECT COUNT(*) as n FROM syntheses
+               WHERE cours_id IN (SELECT id FROM cours WHERE proprietaire = ?)""",
+            (identifiant,),
+        ).fetchone()["n"]
+        tentatives = conn.execute(
+            """SELECT score, score_max FROM tentatives
+               WHERE quiz_id IN (
+                   SELECT id FROM quiz WHERE cours_id IN (
+                       SELECT id FROM cours WHERE proprietaire = ?
+                   )
+               )""",
+            (identifiant,),
+        ).fetchall()
+
+    nb_tentatives = len(tentatives)
+    score_moyen = (
+        round(100 * sum(t["score"] / t["score_max"] for t in tentatives if t["score_max"]) / nb_tentatives)
+        if nb_tentatives
+        else None
+    )
+    return {
+        "nb_cours": nb_cours,
+        "nb_documents": nb_documents,
+        "nb_syntheses": nb_syntheses,
+        "nb_tentatives": nb_tentatives,
+        "score_moyen_pourcentage": score_moyen,
+    }
+
+
+def statistiques_globales() -> dict:
+    """Chiffres agrégés sur toute l'appli (tous les vrais étudiants confondus)."""
+    placeholders = ",".join("?" for _ in _IDENTIFIANTS_EXCLUS)
+    with get_connection() as conn:
+        nb_inscrits = conn.execute(
+            f"SELECT COUNT(DISTINCT proprietaire) as n FROM cours WHERE proprietaire NOT IN ({placeholders})",
+            _IDENTIFIANTS_EXCLUS,
+        ).fetchone()["n"]
+        nb_cours = conn.execute(
+            f"SELECT COUNT(*) as n FROM cours WHERE proprietaire NOT IN ({placeholders})",
+            _IDENTIFIANTS_EXCLUS,
+        ).fetchone()["n"]
+        nb_documents = conn.execute(
+            f"""SELECT COUNT(*) as n FROM documents
+                WHERE cours_id IN (SELECT id FROM cours WHERE proprietaire NOT IN ({placeholders}))""",
+            _IDENTIFIANTS_EXCLUS,
+        ).fetchone()["n"]
+        nb_syntheses = conn.execute(
+            f"""SELECT COUNT(*) as n FROM syntheses
+                WHERE cours_id IN (SELECT id FROM cours WHERE proprietaire NOT IN ({placeholders}))""",
+            _IDENTIFIANTS_EXCLUS,
+        ).fetchone()["n"]
+        tentatives = conn.execute(
+            f"""SELECT score, score_max FROM tentatives
+                WHERE quiz_id IN (
+                    SELECT id FROM quiz WHERE cours_id IN (
+                        SELECT id FROM cours WHERE proprietaire NOT IN ({placeholders})
+                    )
+                )""",
+            _IDENTIFIANTS_EXCLUS,
+        ).fetchall()
+
+    nb_tentatives = len(tentatives)
+    score_moyen = (
+        round(100 * sum(t["score"] / t["score_max"] for t in tentatives if t["score_max"]) / nb_tentatives)
+        if nb_tentatives
+        else None
+    )
+    return {
+        "nb_inscrits": nb_inscrits,
+        "nb_cours": nb_cours,
+        "nb_documents": nb_documents,
+        "nb_syntheses": nb_syntheses,
+        "nb_tentatives": nb_tentatives,
+        "score_moyen_pourcentage": score_moyen,
+    }
+
+
+def insights_admin() -> dict:
+    """Indicateurs pensés pour repérer des problèmes concrets et exploitables :
+    des cours bloqués à une étape (upload réussi mais jamais de synthèse, etc.),
+    des documents en échec d'extraction, la croissance dans le temps..."""
+    placeholders = ",".join("?" for _ in _IDENTIFIANTS_EXCLUS)
+    with get_connection() as conn:
+        cours = conn.execute(
+            f"""SELECT id, nom, proprietaire, created_at FROM cours
+                WHERE proprietaire NOT IN ({placeholders}) ORDER BY created_at""",
+            _IDENTIFIANTS_EXCLUS,
+        ).fetchall()
+        cours = [dict(c) for c in cours]
+        cours_ids = [c["id"] for c in cours]
+
+        documents_en_erreur = []
+        cours_vides = []
+        cours_sans_synthese = []
+        cours_sans_quiz = []
+
+        for c in cours:
+            docs = conn.execute(
+                "SELECT nom_original, statut_extraction FROM documents WHERE cours_id = ?", (c["id"],)
+            ).fetchall()
+            if not docs:
+                cours_vides.append(c)
+                continue
+            for d in docs:
+                if d["statut_extraction"] == "erreur":
+                    documents_en_erreur.append({
+                        "cours": c["nom"], "proprietaire": c["proprietaire"], "document": d["nom_original"],
+                    })
+
+            a_une_synthese = conn.execute(
+                "SELECT 1 FROM syntheses WHERE cours_id = ? LIMIT 1", (c["id"],)
+            ).fetchone()
+            if not a_une_synthese:
+                cours_sans_synthese.append(c)
+                continue
+
+            a_un_quiz = conn.execute(
+                "SELECT 1 FROM quiz WHERE cours_id = ? LIMIT 1", (c["id"],)
+            ).fetchone()
+            if not a_un_quiz:
+                cours_sans_quiz.append(c)
+
+        # Score moyen par type de quiz (diagnostique/examen_blanc/reponse_ecrite)
+        scores_par_type = {}
+        if cours_ids:
+            placeholders_cours = ",".join("?" for _ in cours_ids)
+            rows = conn.execute(
+                f"""SELECT quiz.type as type, tentatives.score as score, tentatives.score_max as score_max
+                    FROM tentatives
+                    JOIN quiz ON quiz.id = tentatives.quiz_id
+                    WHERE quiz.cours_id IN ({placeholders_cours})""",
+                cours_ids,
+            ).fetchall()
+            par_type = {}
+            for r in rows:
+                par_type.setdefault(r["type"], []).append(r)
+            for type_quiz, tents in par_type.items():
+                valides = [t for t in tents if t["score_max"]]
+                if valides:
+                    scores_par_type[type_quiz] = round(
+                        100 * sum(t["score"] / t["score_max"] for t in valides) / len(valides)
+                    )
+
+        # Croissance : nombre de cours créés par jour
+        cours_par_jour = {}
+        for c in cours:
+            jour = c["created_at"][:10]
+            cours_par_jour[jour] = cours_par_jour.get(jour, 0) + 1
+
+    return {
+        "nb_cours_total": len(cours),
+        "cours_vides": cours_vides,
+        "cours_sans_synthese": cours_sans_synthese,
+        "cours_sans_quiz": cours_sans_quiz,
+        "documents_en_erreur": documents_en_erreur,
+        "scores_par_type": scores_par_type,
+        "cours_par_jour": cours_par_jour,
+    }
