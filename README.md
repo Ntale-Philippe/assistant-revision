@@ -131,7 +131,9 @@ pour toi). Pour ça, il faut la mettre en ligne gratuitement :
 5. Clique sur **"New app"**, choisis ton repository, la branche `master`, et le fichier
    principal `app.py`. Clique sur **"Deploy"**.
 6. Après quelques minutes, tu obtiens un lien du genre `https://tonapp.streamlit.app`
-   — c'est CE lien que tu partages avec tes étudiants.
+   — c'est CE lien que tu partages avec tes étudiants. Tu peux le raccourcir/personnaliser
+   depuis les paramètres de l'appli sur share.streamlit.io (champ "App URL") : le lien
+   officiel de ce projet est **https://assistant-revision.streamlit.app**.
 
 Ne mets jamais tes clés dans le code que tu envoies sur GitHub — le fichier
 `.streamlit/secrets.toml` est volontairement exclu (voir `.gitignore`).
