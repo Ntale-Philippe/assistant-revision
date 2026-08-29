@@ -117,3 +117,83 @@ def corriger_ecrit(questions: list[dict], reponses_texte: list[str]) -> tuple[in
     details = resultat["resultats"]
     score = sum(1 for d in details if d.get("correcte"))
     return score, len(questions), details
+
+
+def message_resultat(type_quiz: str, score: int, score_max: int, score_precedent: int | None = None) -> str:
+    """Message personnalisé après correction, selon le type de quiz (le cadrage
+    n'est pas le même avant/après révision, en examen blanc ou à l'écrit) et le
+    score obtenu. Purement basé sur des règles (pas d'appel IA) : rapide, fiable,
+    et ça évite de consommer du quota pour un simple message d'encouragement.
+
+    `score_precedent` (uniquement pour type_quiz="apres") : le score obtenu au
+    quiz diagnostique AVANT révision, pour pouvoir comparer et féliciter la
+    progression plutôt qu'annoncer juste un pourcentage brut."""
+    pourcentage = round(100 * score / score_max) if score_max else 0
+
+    if type_quiz == "avant":
+        if pourcentage >= 70:
+            return f"Tu maîtrises déjà bien ce cours ({pourcentage}%) ! Révise quand même les points ratés pour viser le sans-faute."
+        if pourcentage >= 40:
+            return (
+                f"Bon diagnostic ({pourcentage}%) : tu as des bases, mais plusieurs points à "
+                "consolider avant l'examen. Utilise ta fiche de synthèse pour cibler tes lacunes."
+            )
+        return (
+            f"C'est normal de ne pas tout savoir avant de réviser ({pourcentage}%) — c'est "
+            "justement le but de ce quiz : repérer où concentrer tes efforts. Fonce sur la "
+            "fiche de synthèse !"
+        )
+
+    if type_quiz == "apres":
+        if score_precedent is not None:
+            delta = score - score_precedent
+            if delta > 0:
+                return (
+                    f"Bravo, tu progresses : {score_precedent} → {score} bonnes réponses "
+                    f"({pourcentage}%) ! Ta révision a payé."
+                )
+            if delta == 0:
+                return (
+                    f"Même score qu'avant révision ({pourcentage}%) — relis ta fiche de "
+                    "synthèse sur les points ratés avant de retenter."
+                )
+            return (
+                f"Ton score a un peu baissé par rapport à avant révision ({pourcentage}%) — "
+                "pas de panique, ça arrive (fatigue, stress). Relis calmement ta fiche avant "
+                "de reprendre."
+            )
+        if pourcentage >= 70:
+            return f"Bon score après révision ({pourcentage}%) !"
+        return f"Score après révision : {pourcentage}%. Continue à réviser les points faibles."
+
+    if type_quiz == "examen_blanc":
+        if pourcentage >= 80:
+            return f"Excellent ({pourcentage}%) : tu es prêt pour l'examen. Garde ce rythme de révision."
+        if pourcentage >= 50:
+            return (
+                f"Score correct ({pourcentage}%), mais encore du travail avant d'être serein "
+                "le jour J. Repère les questions ratées et retravaille ces points précis."
+            )
+        return (
+            f"Ce résultat ({pourcentage}%) montre qu'il reste du travail avant l'examen — "
+            "mieux vaut le découvrir maintenant qu'en salle d'examen. Reprends ta fiche de "
+            "synthèse en profondeur."
+        )
+
+    if type_quiz == "ecrit":
+        if pourcentage >= 80:
+            return (
+                f"Très bonnes réponses rédigées ({pourcentage}%) : tu sais formuler tes "
+                "connaissances clairement, pas seulement les reconnaître."
+            )
+        if pourcentage >= 50:
+            return (
+                f"Correct dans l'ensemble ({pourcentage}%), mais travaille la précision de ta "
+                "rédaction — relis les réponses modèles pour voir ce qui manquait."
+            )
+        return (
+            f"Rédiger de mémoire est plus dur que choisir une réponse ({pourcentage}%) — normal "
+            "si c'est nouveau pour toi. Relis les réponses modèles pour t'entraîner."
+        )
+
+    return f"Score : {pourcentage}%."

@@ -9,7 +9,7 @@ from core import repository
 from core.auth import exiger_identification
 from core.db import init_db
 from core.navigation import afficher_navigation
-from core.quiz_service import corriger
+from core.quiz_service import corriger, message_resultat
 
 st.set_page_config(page_title="Quiz", page_icon="assets/icone.png", layout="centered")
 init_db()
@@ -124,6 +124,13 @@ if st.session_state.get("quiz_termine"):
     st.subheader(f"Résultat : {score} / {score_max}")
     pourcentage = round(100 * score / score_max) if score_max else 0
     st.progress(pourcentage / 100, text=f"{pourcentage}%")
+
+    score_precedent = None
+    if phase == "apres":
+        tentative_avant = repository.derniere_tentative(quiz_id, "avant")
+        if tentative_avant:
+            score_precedent = tentative_avant["score"]
+    st.info(message_resultat(phase, score, score_max, score_precedent))
 
     for i, q in enumerate(questions):
         bonne = q["bonne_reponse_index"]

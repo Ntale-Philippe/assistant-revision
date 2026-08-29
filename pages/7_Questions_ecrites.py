@@ -12,7 +12,7 @@ from core.auth import exiger_identification
 from core.db import init_db
 from core.mistral_client import message_utilisateur
 from core.navigation import afficher_navigation
-from core.quiz_service import corriger_ecrit
+from core.quiz_service import corriger_ecrit, message_resultat
 
 st.set_page_config(page_title="Examen écrit", page_icon="assets/icone.png", layout="centered")
 init_db()
@@ -126,6 +126,7 @@ if termine and st.session_state.get("ecrit_resultat"):
     st.subheader(f"Résultat : {resultat['score']} / {resultat['score_max']}")
     pourcentage = round(100 * resultat["score"] / resultat["score_max"]) if resultat["score_max"] else 0
     st.progress(pourcentage / 100, text=f"{pourcentage}%")
+    st.info(message_resultat("ecrit", resultat["score"], resultat["score_max"]))
 
     for i, q in enumerate(questions):
         detail = resultat["details"][i] if i < len(resultat["details"]) else {}

@@ -223,6 +223,39 @@ def derniere_tentative(quiz_id: int, phase: str) -> dict | None:
         return dict(row) if row else None
 
 
+def historique_tentatives(cours_id: int, type_quiz: str) -> list[dict]:
+    """Toutes les tentatives passées pour ce type de quiz sur ce cours, TOUTES
+    générations confondues : régénérer un quiz (examen blanc, questions écrites)
+    crée un nouveau quiz_id, mais les anciennes tentatives restent consultables ici
+    au lieu de devenir invisibles. Chaque tentative renvoyée inclut ses propres
+    questions (celles du quiz tel qu'il était au moment de la tentative) et ses
+    réponses/détails déjà décodés (plus besoin de json.loads côté appelant)."""
+    with get_connection() as conn:
+        quiz_ids = [
+            r["id"]
+            for r in conn.execute(
+                "SELECT id FROM quiz WHERE cours_id = ? AND type = ? ORDER BY created_at",
+                (cours_id, type_quiz),
+            ).fetchall()
+        ]
+
+    resultat = []
+    for quiz_id in quiz_ids:
+        questions = lister_questions(quiz_id)
+        for tentative in lister_tentatives(quiz_id):
+            tentative["questions"] = questions
+            tentative["reponses"] = (
+                json.loads(tentative["reponses_json"]) if tentative.get("reponses_json") else []
+            )
+            tentative["details"] = (
+                json.loads(tentative["details_json"]) if tentative.get("details_json") else None
+            )
+            resultat.append(tentative)
+
+    resultat.sort(key=lambda t: t["created_at"], reverse=True)
+    return resultat
+
+
 # --- Profil (facultatif, pour personnaliser "à retenir pour la vie") ---------
 
 def obtenir_profil(identifiant: str) -> dict | None:
