@@ -49,7 +49,8 @@ def generer_et_sauver_synthese(cours_id: int, proprietaire: str) -> dict:
         )
 
     examens_passes = repository.texte_examens_passes(cours_id)
-    prompt = prompt_synthese(cours["nom"], texte, examens_passes)
+    profil = repository.obtenir_profil(proprietaire)
+    prompt = prompt_synthese(cours["nom"], texte, examens_passes, profil)
     # Borne la longueur de la réponse : sans ça, la section "synthese" (ouverte, pas
     # de nombre fixe comme les questions de quiz) peut partir sur une réponse très
     # longue pour un gros cours, ce qui prend plus de temps et augmente le risque de

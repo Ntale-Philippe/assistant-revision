@@ -206,6 +206,16 @@ CREATE TABLE IF NOT EXISTS licences (
     expire_le TEXT
 );
 
+CREATE TABLE IF NOT EXISTS profils (
+    -- Un profil facultatif par personne (identifiant, pas par cours) : sert à
+    -- personnaliser la section "à retenir pour la vie" de la synthèse en la reliant
+    -- à la filière et à l'objectif de vie de l'étudiant, plutôt que des généralités.
+    identifiant TEXT PRIMARY KEY,
+    faculte TEXT,
+    reve TEXT,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS messages_chat (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cours_id INTEGER NOT NULL REFERENCES cours(id) ON DELETE CASCADE,

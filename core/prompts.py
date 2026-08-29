@@ -27,13 +27,34 @@ Voici aussi d'anciens examens de ce cours, déposés par l'étudiant comme réf�
 Ce sont de VRAIS examens déjà donnés dans ce cours : {but}"""
 
 
-def prompt_synthese(nom_cours: str, texte: str, examens_passes: str = "") -> str:
+def prompt_synthese(nom_cours: str, texte: str, examens_passes: str = "", profil: dict | None = None) -> str:
     bloc_examens = _bloc_examens_passes(
         examens_passes,
         "utilise-les EN PRIORITÉ pour la section \"notions_examen\" — base-toi sur les "
         "notions et questions qui reviennent réellement dans ces examens plutôt que sur "
         "une estimation générale, chaque fois que c'est possible.",
     )
+
+    faculte = (profil or {}).get("faculte", "").strip()
+    reve = (profil or {}).get("reve", "").strip()
+    if faculte or reve:
+        elements = []
+        if faculte:
+            elements.append(f'étudie en "{faculte}"')
+        if reve:
+            elements.append(f'rêve de "{reve}" dans 20 ans')
+        consigne_a_retenir = (
+            f"""cet étudiant {" et ".join(elements)}. Relie explicitement les notions
+   fondamentales de CE cours précis à cet objectif personnel : montre concrètement
+   comment ce sujet va l'aider dans sa filière et/ou son rêve, pas des généralités qui
+   vaudraient pour n'importe quel étudiant (liste à puces, une dizaine d'éléments
+   maximum)."""
+        )
+    else:
+        consigne_a_retenir = (
+            """les notions fondamentales à retenir "pour la vie", au-delà de l'examen
+   (liste à puces, allant à l'essentiel, une dizaine d'éléments maximum)."""
+        )
 
     return f"""Tu es un excellent tuteur universitaire, pédagogue et précis, capable
 d'enseigner n'importe quelle discipline (sciences, droit, lettres, économie, ingénierie...).
@@ -57,8 +78,7 @@ Voici tout le contenu extrait des documents du cours "{nom_cours}" :
 3. "notions_examen" : les passages, définitions ou raisonnements les plus susceptibles
    de tomber à l'examen, avec une courte justification pour chacun (liste à puces,
    une dizaine d'éléments maximum).
-4. "a_retenir" : les notions fondamentales à retenir "pour la vie", au-delà de l'examen
-   (liste à puces, allant à l'essentiel, une dizaine d'éléments maximum).
+4. "a_retenir" : {consigne_a_retenir}
 5. "fun_facts" : 3 à 5 anecdotes ou faits marquants liés au sujet, pour rendre le
    cours mémorable.
 

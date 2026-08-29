@@ -223,6 +223,29 @@ def derniere_tentative(quiz_id: int, phase: str) -> dict | None:
         return dict(row) if row else None
 
 
+# --- Profil (facultatif, pour personnaliser "à retenir pour la vie") ---------
+
+def obtenir_profil(identifiant: str) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM profils WHERE identifiant = ?", (identifiant,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def sauver_profil(identifiant: str, faculte: str, reve: str):
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO profils (identifiant, faculte, reve, updated_at)
+               VALUES (?, ?, ?, datetime('now'))
+               ON CONFLICT(identifiant) DO UPDATE SET
+                   faculte = excluded.faculte,
+                   reve = excluded.reve,
+                   updated_at = excluded.updated_at""",
+            (identifiant, faculte, reve),
+        )
+
+
 # --- Chat (discussion libre sur un cours) ------------------------------------
 
 def ajouter_message_chat(cours_id: int, role: str, contenu: str) -> int:

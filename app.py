@@ -43,6 +43,33 @@ if identifiant != PROPRIETAIRE_SOLO:
 
 st.divider()
 
+# --- Profil (facultatif) : personnalise la section "à retenir pour la vie" ------
+
+profil_actuel = repository.obtenir_profil(identifiant) or {}
+with st.expander("Personnalise l'appli (facultatif)", expanded=False):
+    st.caption(
+        "Dis-nous ta filière et ton objectif de vie : la section « à retenir pour "
+        "la vie » de tes futures synthèses s'y référera pour te montrer concrètement "
+        "en quoi chaque cours te sert, plutôt que des généralités."
+    )
+    with st.form("profil_form"):
+        faculte = st.text_input(
+            "Ta faculté / domaine d'études",
+            value=profil_actuel.get("faculte") or "",
+            placeholder="Ex : Médecine, Droit, Ingénierie civile...",
+        )
+        reve = st.text_input(
+            "Ton rêve dans 20 ans",
+            value=profil_actuel.get("reve") or "",
+            placeholder="Ex : Devenir chirurgien, ouvrir mon cabinet d'avocat...",
+        )
+        if st.form_submit_button("Enregistrer"):
+            repository.sauver_profil(identifiant, faculte.strip(), reve.strip())
+            st.success("Profil enregistré.")
+            st.rerun()
+
+st.divider()
+
 # --- Formulaire de création d'un cours --------------------------------------
 
 with st.expander("Nouveau cours", expanded=False):
