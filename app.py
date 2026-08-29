@@ -27,52 +27,16 @@ if identifiant != PROPRIETAIRE_SOLO:
             oublier_identite()
             st.rerun()
 
-    lien = lien_personnel_actuel()
-    if lien:
-        with st.expander("Mon lien personnel (à mettre en favori sur ton téléphone)", expanded=True):
-            st.write(
-                "Pendant cette visite, tu n'as plus besoin de retaper quoi que ce soit en "
-                "changeant d'onglet. Mais si tu fermes le navigateur, il te faudra ce lien "
-                "pour retrouver ton espace la prochaine fois — mets-le en favori maintenant :"
-            )
-            st.code(lien, language=None)
-            st.caption(
-                "Garde ce lien de ton côté : sans lui (et sans ton mot de passe), "
-                "personne (pas même nous) ne peut retrouver tes cours."
-            )
-
-st.divider()
-
-# --- Profil (facultatif) : personnalise la section "à retenir pour la vie" ------
-
-profil_actuel = repository.obtenir_profil(identifiant) or {}
-with st.expander("Personnalise l'appli (facultatif)", expanded=False):
-    st.caption(
-        "Dis-nous ta filière et ton objectif de vie : la section « à retenir pour "
-        "la vie » de tes futures synthèses s'y référera pour te montrer concrètement "
-        "en quoi chaque cours te sert, plutôt que des généralités."
-    )
-    with st.form("profil_form"):
-        faculte = st.text_input(
-            "Ta faculté / domaine d'études",
-            value=profil_actuel.get("faculte") or "",
-            placeholder="Ex : Médecine, Droit, Ingénierie civile...",
-        )
-        reve = st.text_input(
-            "Ton rêve dans 20 ans",
-            value=profil_actuel.get("reve") or "",
-            placeholder="Ex : Devenir chirurgien, ouvrir mon cabinet d'avocat...",
-        )
-        if st.form_submit_button("Enregistrer"):
-            repository.sauver_profil(identifiant, faculte.strip(), reve.strip())
-            st.success("Profil enregistré.")
-            st.rerun()
-
 st.divider()
 
 # --- Formulaire de création d'un cours --------------------------------------
+# En premier et déplié tant qu'il n'y a aucun cours : c'est LA première action
+# attendue d'un nouvel utilisateur, elle ne doit pas être cachée plus bas derrière
+# un clic (retour de test réel : des utilisateurs ne la trouvaient pas).
 
-with st.expander("Nouveau cours", expanded=False):
+cours_list = repository.lister_cours(identifiant)
+
+with st.expander("Nouveau cours", expanded=(len(cours_list) == 0)):
     with st.form("nouveau_cours_form", clear_on_submit=True):
         nom = st.text_input("Nom du cours", placeholder="Ex : Introduction au droit des contrats")
         description = st.text_area("Description (optionnel)", placeholder="Quelques mots sur le cours...")
@@ -88,8 +52,6 @@ with st.expander("Nouveau cours", expanded=False):
 st.divider()
 
 # --- Liste des cours ----------------------------------------------------------
-
-cours_list = repository.lister_cours(identifiant)
 
 if not cours_list:
     st.info("Aucun cours pour l'instant. Crée ton premier cours ci-dessus.")
@@ -128,6 +90,48 @@ else:
                     if st.button("Annuler", key=f"confirme_non_{cours['id']}"):
                         st.session_state.pop(cle_confirmation, None)
                         st.rerun()
+
+st.divider()
+
+# --- Lien personnel et profil : secondaire, replié, après l'essentiel ---------
+
+if identifiant != PROPRIETAIRE_SOLO:
+    lien = lien_personnel_actuel()
+    if lien:
+        with st.expander("Mon lien personnel (à mettre en favori sur ton téléphone)"):
+            st.write(
+                "Pendant cette visite, tu n'as plus besoin de retaper quoi que ce soit en "
+                "changeant d'onglet. Mais si tu fermes le navigateur, il te faudra ce lien "
+                "pour retrouver ton espace la prochaine fois — mets-le en favori maintenant :"
+            )
+            st.code(lien, language=None)
+            st.caption(
+                "Garde ce lien de ton côté : sans lui (et sans ton mot de passe), "
+                "personne (pas même nous) ne peut retrouver tes cours."
+            )
+
+profil_actuel = repository.obtenir_profil(identifiant) or {}
+with st.expander("Personnalise l'appli (facultatif)"):
+    st.caption(
+        "Dis-nous ta filière et ton objectif de vie : la section « à retenir pour "
+        "la vie » de tes futures synthèses s'y référera pour te montrer concrètement "
+        "en quoi chaque cours te sert, plutôt que des généralités."
+    )
+    with st.form("profil_form"):
+        faculte = st.text_input(
+            "Ta faculté / domaine d'études",
+            value=profil_actuel.get("faculte") or "",
+            placeholder="Ex : Médecine, Droit, Ingénierie civile...",
+        )
+        reve = st.text_input(
+            "Ton rêve dans 20 ans",
+            value=profil_actuel.get("reve") or "",
+            placeholder="Ex : Devenir chirurgien, ouvrir mon cabinet d'avocat...",
+        )
+        if st.form_submit_button("Enregistrer"):
+            repository.sauver_profil(identifiant, faculte.strip(), reve.strip())
+            st.success("Profil enregistré.")
+            st.rerun()
 
 st.divider()
 with st.expander("Confidentialité"):

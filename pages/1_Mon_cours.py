@@ -181,30 +181,30 @@ with tab_docs:
         _traiter_fichiers(images_deposees)
 
     st.divider()
-    st.subheader("Anciens examens (facultatif)")
-    st.caption(
-        "Dépose ici de vrais anciens examens de ce cours, si tu en as : l'IA s'en "
-        "sert en priorité pour deviner les vraies notions probables et pour "
-        "composer des quiz dans le style de ton professeur. Ils ne sont jamais "
-        "mélangés au contenu du cours lui-même."
-    )
-    examens_documents = st.file_uploader(
-        "Anciens examens — documents",
-        type=EXTENSIONS_DOCUMENTS,
-        accept_multiple_files=True,
-        key="upload_examens_documents",
-    )
-    if examens_documents and st.button("Ajouter ces examens (documents)"):
-        _traiter_fichiers(examens_documents, categorie="examen_passe")
+    with st.expander("Anciens examens (facultatif)"):
+        st.caption(
+            "Dépose ici de vrais anciens examens de ce cours, si tu en as : l'IA s'en "
+            "sert en priorité pour deviner les vraies notions probables et pour "
+            "composer des quiz dans le style de ton professeur. Ils ne sont jamais "
+            "mélangés au contenu du cours lui-même."
+        )
+        examens_documents = st.file_uploader(
+            "Anciens examens — documents",
+            type=EXTENSIONS_DOCUMENTS,
+            accept_multiple_files=True,
+            key="upload_examens_documents",
+        )
+        if examens_documents and st.button("Ajouter ces examens (documents)"):
+            _traiter_fichiers(examens_documents, categorie="examen_passe")
 
-    examens_images = st.file_uploader(
-        "Anciens examens — images (photos de sujets papier)",
-        type=EXTENSIONS_IMAGES,
-        accept_multiple_files=True,
-        key="upload_examens_images",
-    )
-    if examens_images and st.button("Ajouter ces examens (images)"):
-        _traiter_fichiers(examens_images, categorie="examen_passe")
+        examens_images = st.file_uploader(
+            "Anciens examens — images (photos de sujets papier)",
+            type=EXTENSIONS_IMAGES,
+            accept_multiple_files=True,
+            key="upload_examens_images",
+        )
+        if examens_images and st.button("Ajouter ces examens (images)"):
+            _traiter_fichiers(examens_images, categorie="examen_passe")
 
     st.divider()
     st.subheader("Documents du cours")
