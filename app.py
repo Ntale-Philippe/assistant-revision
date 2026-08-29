@@ -45,9 +45,13 @@ with st.expander("Nouveau cours", expanded=(len(cours_list) == 0)):
         submitted = st.form_submit_button("Créer le cours")
         if submitted:
             if nom.strip():
-                repository.creer_cours(identifiant, nom.strip(), description.strip())
-                st.success(f"Cours « {nom} » créé.")
-                st.rerun()
+                # Emmène directement sur le cours (onglet Documents) au lieu de
+                # revenir sur l'accueil : évite le clic "Ouvrir" en plus, qui semble
+                # etre le moment ou plusieurs etudiants abandonnaient (cours crees
+                # puis jamais aucun document depose - constate sur de vraies donnees).
+                nouveau_cours_id = repository.creer_cours(identifiant, nom.strip(), description.strip())
+                st.session_state["cours_id"] = nouveau_cours_id
+                st.switch_page("pages/1_Mon_cours.py")
             else:
                 st.error("Le nom du cours est obligatoire.")
 
