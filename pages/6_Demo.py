@@ -48,6 +48,7 @@ with tab_synthese:
         with st.expander("Notions probables à l'examen"):
             st.markdown(synthese["notions_examen_md"])
         with st.expander("À retenir pour la vie"):
+            st.caption("💫 Des faits et petites histoires intéressants à connaître, au-delà de l'examen.")
             st.markdown(synthese["a_retenir_md"])
         with st.expander("Anecdotes"):
             st.markdown(synthese["fun_facts_md"])
