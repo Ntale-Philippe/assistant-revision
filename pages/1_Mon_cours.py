@@ -53,6 +53,15 @@ st.title(cours["nom"])
 if cours.get("description"):
     st.caption(cours["description"])
 
+if not repository.lister_documents(cours_id):
+    # Guide affiché uniquement tant que le cours est vide (première visite) : une
+    # fois des documents déposés, il disparaît tout seul pour ne pas alourdir
+    # l'appli à chaque visite ensuite.
+    st.info(
+        "**Comment ça marche :** 1) Dépose tes documents dans l'onglet **Documents** "
+        "→ 2) Génère ta fiche dans l'onglet **Synthèse** → 3) Teste-toi dans l'onglet **Quiz**."
+    )
+
 tab_docs, tab_synthese, tab_quiz, tab_chat = st.tabs(["Documents", "Synthèse", "Quiz", "Discussion"])
 
 
