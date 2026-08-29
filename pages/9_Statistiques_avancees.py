@@ -14,7 +14,7 @@ import streamlit as st
 
 from core import repository
 from core.auth import exiger_identification
-from core.config import get_admin_password
+from core.config import DEVISE_PREMIUM, DUREE_PREMIUM_JOURS, PRIX_PREMIUM, get_admin_password
 from core.db import init_db
 
 st.set_page_config(page_title="Statistiques avancées", page_icon="assets/icone.png", layout="centered")
@@ -47,6 +47,52 @@ if not deverrouille:
 if st.button("Verrouiller à nouveau"):
     st.session_state.pop("stats_admin_ok", None)
     st.rerun()
+
+st.markdown("## 🔓 Gérer les accès premium")
+st.caption(
+    f"Prix convenu : {PRIX_PREMIUM:g} {DEVISE_PREMIUM} pour {DUREE_PREMIUM_JOURS} jours "
+    "(un semestre), payé par mobile money hors appli. Active ici après avoir reçu la "
+    "preuve de paiement (capture d'écran WhatsApp par exemple)."
+)
+
+candidats = repository.lister_candidats_premium()
+if not candidats:
+    st.caption("Aucun étudiant (hors ton compte solo et la démo) n'a encore créé de cours.")
+else:
+    noms_affiches = {
+        f"{c['prenom']} — {c['nb_cours']} cours ({c['cours_noms']}) "
+        f"{'🟢 premium' if c['est_premium'] else '⚪ gratuit'} — id {c['identifiant'][:8]}...": c
+        for c in candidats
+    }
+    choix = st.selectbox("Étudiant", list(noms_affiches.keys()))
+    candidat = noms_affiches[choix]
+
+    if candidat["est_premium"]:
+        expire = candidat["premium_expire_le"]
+        st.write(f"Statut actuel : 🟢 **premium**" + (f" (expire le {expire})" if expire else " (permanent)"))
+        if st.button("Retirer l'accès premium"):
+            repository.desactiver_premium(candidat["identifiant"])
+            st.success(f"Accès premium retiré pour {candidat['prenom']}.")
+            st.rerun()
+    else:
+        st.write("Statut actuel : ⚪ gratuit")
+        col1, col2 = st.columns(2)
+        with col1:
+            duree_choisie = st.number_input(
+                "Durée (jours)", min_value=1, value=DUREE_PREMIUM_JOURS, step=1,
+                help="Laisse la valeur par défaut pour un semestre standard.",
+            )
+        with col2:
+            montant_recu = st.number_input("Montant reçu", min_value=0.0, value=PRIX_PREMIUM, step=0.5)
+        note = st.text_input("Note (facultatif)", placeholder="Ex : payé par Airtel Money le 29/08")
+        if st.button("✅ Activer le premium", type="primary"):
+            repository.activer_premium(
+                candidat["identifiant"], int(duree_choisie), montant_recu, DEVISE_PREMIUM, note
+            )
+            st.success(f"Premium activé pour {candidat['prenom']} ({int(duree_choisie)} jours).")
+            st.rerun()
+
+st.divider()
 
 insights = repository.insights_admin()
 total = insights["nb_cours_total"]

@@ -9,8 +9,12 @@ from core import repository
 from core.auth import exiger_identification
 from core.chat_service import poser_question
 from core.config import (
+    DEVISE_PREMIUM,
+    DUREE_PREMIUM_JOURS,
     EXTENSIONS_DOCUMENTS,
     EXTENSIONS_IMAGES,
+    NB_QUESTIONS_CHAT_GRATUIT,
+    PRIX_PREMIUM,
     SEUIL_AVERTISSEMENT_CARACTERES,
     SEUIL_ENORME_CARACTERES,
     SEUIL_LIMITE_TECHNIQUE_CARACTERES,
@@ -62,7 +66,17 @@ if not repository.lister_documents(cours_id):
         "→ 2) Génère ta fiche dans l'onglet **Synthèse** → 3) Teste-toi dans l'onglet **Quiz**."
     )
 
+est_premium = repository.est_premium(identifiant)
+
 tab_docs, tab_synthese, tab_quiz, tab_chat = st.tabs(["Documents", "Synthèse", "Quiz", "Discussion"])
+
+
+def _message_premium(quoi: str):
+    """Message affiché à la place d'une fonctionnalité payante non débloquée."""
+    st.warning(
+        f"🔒 {quoi} — fonctionnalité payante ({PRIX_PREMIUM}$ pour {DUREE_PREMIUM_JOURS} jours). "
+        "Envoie le paiement par mobile money et préviens le propriétaire de l'appli pour débloquer."
+    )
 
 
 def _etat_bouton_ia(cle: str) -> tuple[bool, int]:
@@ -240,31 +254,34 @@ with tab_docs:
 
     st.divider()
     with st.expander("Anciens examens (facultatif)"):
-        st.caption(
-            "Dépose ici de vrais anciens examens de ce cours, si tu en as : l'IA s'en "
-            "sert en priorité pour deviner les vraies notions probables et pour "
-            "composer des quiz dans le style de ton professeur. Ils ne sont jamais "
-            "mélangés au contenu du cours lui-même."
-        )
-        examens_documents = st.file_uploader(
-            "Anciens examens — documents",
-            type=EXTENSIONS_DOCUMENTS,
-            accept_multiple_files=True,
-            key="upload_examens_documents",
-        )
-        if examens_documents and st.button("Ajouter ces examens (documents)"):
-            _traiter_fichiers(examens_documents, categorie="examen_passe")
+        if not est_premium:
+            _message_premium("Déposer d'anciens examens")
+        else:
+            st.caption(
+                "Dépose ici de vrais anciens examens de ce cours, si tu en as : l'IA s'en "
+                "sert en priorité pour deviner les vraies notions probables et pour "
+                "composer des quiz dans le style de ton professeur. Ils ne sont jamais "
+                "mélangés au contenu du cours lui-même."
+            )
+            examens_documents = st.file_uploader(
+                "Anciens examens — documents",
+                type=EXTENSIONS_DOCUMENTS,
+                accept_multiple_files=True,
+                key="upload_examens_documents",
+            )
+            if examens_documents and st.button("Ajouter ces examens (documents)"):
+                _traiter_fichiers(examens_documents, categorie="examen_passe")
 
-        examens_images = st.file_uploader(
-            "Anciens examens — images (photos de sujets papier)",
-            type=EXTENSIONS_IMAGES,
-            accept_multiple_files=True,
-            key="upload_examens_images",
-        )
-        if examens_images and st.button("Ajouter ces examens (images)"):
-            _traiter_fichiers(examens_images, categorie="examen_passe")
+            examens_images = st.file_uploader(
+                "Anciens examens — images (photos de sujets papier)",
+                type=EXTENSIONS_IMAGES,
+                accept_multiple_files=True,
+                key="upload_examens_images",
+            )
+            if examens_images and st.button("Ajouter ces examens (images)"):
+                _traiter_fichiers(examens_images, categorie="examen_passe")
 
-        _afficher_doublons_en_attente("examen_passe")
+            _afficher_doublons_en_attente("examen_passe")
 
     st.divider()
     st.subheader("Documents du cours")
@@ -300,13 +317,17 @@ with tab_synthese:
     with col2:
         cle_cooldown = f"synthese_{cours_id}"
         peut, restant = _etat_bouton_ia(cle_cooldown)
+        # La 1re génération est gratuite ; régénérer (déjà une synthèse) est payant.
+        verrouille = bool(synthese) and not est_premium
         label = "Régénérer" if synthese else "Générer"
-        if st.button(label, disabled=not peut):
+        if st.button(label, disabled=not peut or verrouille):
             with st.spinner("L'IA lit tes documents et prépare ta fiche..."):
                 _executer_generation_ia(
                     cle_cooldown,
                     lambda: generer_et_sauver_synthese(cours_id, identifiant),
                 )
+    if verrouille:
+        _message_premium("Régénérer la synthèse")
     _afficher_cooldown(cle_cooldown, peut, restant)
 
     if not synthese:
@@ -382,34 +403,37 @@ with tab_quiz:
         with col1:
             st.markdown("#### 3. Examen blanc (chronométré)")
             st.caption("Le quiz le plus corsé, en conditions d'examen.")
-        cle_cooldown = f"examen_{cours_id}"
-        peut, restant = _etat_bouton_ia(cle_cooldown)
-        if not quiz_examen:
-            if st.button("Générer l'examen blanc", disabled=not peut):
-                with st.spinner("Préparation de l'examen blanc..."):
-                    _executer_generation_ia(
-                        cle_cooldown,
-                        lambda: generer_quiz(cours_id, identifiant, "examen_blanc"),
-                    )
-            _afficher_cooldown(cle_cooldown, peut, restant)
+        if not est_premium:
+            _message_premium("L'examen blanc")
         else:
-            with col2:
-                if st.button("Régénérer", key="regenerer_examen", disabled=not peut):
-                    with st.spinner("Préparation d'un nouvel examen blanc..."):
+            cle_cooldown = f"examen_{cours_id}"
+            peut, restant = _etat_bouton_ia(cle_cooldown)
+            if not quiz_examen:
+                if st.button("Générer l'examen blanc", disabled=not peut):
+                    with st.spinner("Préparation de l'examen blanc..."):
                         _executer_generation_ia(
                             cle_cooldown,
                             lambda: generer_quiz(cours_id, identifiant, "examen_blanc"),
                         )
-            _afficher_cooldown(cle_cooldown, peut, restant)
+                _afficher_cooldown(cle_cooldown, peut, restant)
+            else:
+                with col2:
+                    if st.button("Régénérer", key="regenerer_examen", disabled=not peut):
+                        with st.spinner("Préparation d'un nouvel examen blanc..."):
+                            _executer_generation_ia(
+                                cle_cooldown,
+                                lambda: generer_quiz(cours_id, identifiant, "examen_blanc"),
+                            )
+                _afficher_cooldown(cle_cooldown, peut, restant)
 
-            if st.button("Passer l'examen blanc"):
-                st.session_state["quiz_id"] = quiz_examen["id"]
-                st.session_state["phase"] = "examen_blanc"
-                st.switch_page("pages/2_Quiz.py")
-            tentatives_examen = repository.lister_tentatives(quiz_examen["id"])
-            if tentatives_examen:
-                derniere = tentatives_examen[-1]
-                st.caption(f"Dernier score : {derniere['score']} / {derniere['score_max']}")
+                if st.button("Passer l'examen blanc"):
+                    st.session_state["quiz_id"] = quiz_examen["id"]
+                    st.session_state["phase"] = "examen_blanc"
+                    st.switch_page("pages/2_Quiz.py")
+                tentatives_examen = repository.lister_tentatives(quiz_examen["id"])
+                if tentatives_examen:
+                    derniere = tentatives_examen[-1]
+                    st.caption(f"Dernier score : {derniere['score']} / {derniere['score_max']}")
 
     # --- Carte 4 : questions à réponse écrite ---
     with st.container(border=True):
@@ -420,33 +444,36 @@ with tab_quiz:
                 "Rédige tes réponses au lieu de choisir, en temps limité — corrigé "
                 "par l'IA. Séparé des 3 quiz ci-dessus, ne compte pas dans ta progression."
             )
-        cle_cooldown = f"quiz_ecrit_{cours_id}"
-        peut, restant = _etat_bouton_ia(cle_cooldown)
-        if not quiz_ecrit:
-            if st.button("Générer les questions", disabled=not peut):
-                with st.spinner("Préparation des questions..."):
-                    _executer_generation_ia(
-                        cle_cooldown,
-                        lambda: generer_quiz_ecrit(cours_id, identifiant),
-                    )
-            _afficher_cooldown(cle_cooldown, peut, restant)
+        if not est_premium:
+            _message_premium("L'examen écrit")
         else:
-            with col2:
-                if st.button("Régénérer", key="regenerer_ecrit", disabled=not peut):
-                    with st.spinner("Préparation de nouvelles questions..."):
+            cle_cooldown = f"quiz_ecrit_{cours_id}"
+            peut, restant = _etat_bouton_ia(cle_cooldown)
+            if not quiz_ecrit:
+                if st.button("Générer les questions", disabled=not peut):
+                    with st.spinner("Préparation des questions..."):
                         _executer_generation_ia(
                             cle_cooldown,
                             lambda: generer_quiz_ecrit(cours_id, identifiant),
                         )
-            _afficher_cooldown(cle_cooldown, peut, restant)
+                _afficher_cooldown(cle_cooldown, peut, restant)
+            else:
+                with col2:
+                    if st.button("Régénérer", key="regenerer_ecrit", disabled=not peut):
+                        with st.spinner("Préparation de nouvelles questions..."):
+                            _executer_generation_ia(
+                                cle_cooldown,
+                                lambda: generer_quiz_ecrit(cours_id, identifiant),
+                            )
+                _afficher_cooldown(cle_cooldown, peut, restant)
 
-            if st.button("Passer l'examen écrit"):
-                st.session_state["quiz_ecrit_id"] = quiz_ecrit["id"]
-                st.switch_page("pages/7_Questions_ecrites.py")
-            tentatives_ecrit = repository.lister_tentatives(quiz_ecrit["id"])
-            if tentatives_ecrit:
-                derniere = tentatives_ecrit[-1]
-                st.caption(f"Dernier score : {derniere['score']} / {derniere['score_max']}")
+                if st.button("Passer l'examen écrit"):
+                    st.session_state["quiz_ecrit_id"] = quiz_ecrit["id"]
+                    st.switch_page("pages/7_Questions_ecrites.py")
+                tentatives_ecrit = repository.lister_tentatives(quiz_ecrit["id"])
+                if tentatives_ecrit:
+                    derniere = tentatives_ecrit[-1]
+                    st.caption(f"Dernier score : {derniere['score']} / {derniere['score_max']}")
 
 # --- Onglet Discussion -------------------------------------------------------
 
@@ -470,21 +497,31 @@ with tab_chat:
             with st.chat_message(role_affiche):
                 st.markdown(message["contenu"])
 
-        question = st.chat_input("Ta question sur le cours...")
-        if question:
-            with st.chat_message("user"):
-                st.markdown(question)
-            with st.chat_message("assistant"):
-                with st.spinner("Réflexion..."):
-                    try:
-                        poser_question(cours_id, identifiant, question)
-                        # Sans ce rerun, la nouvelle question et sa réponse restaient
-                        # affichées EN DESSOUS du champ de saisie (il est appelé avant
-                        # ce bloc dans le code) jusqu'à la prochaine interaction — le
-                        # champ ne semblait donc pas toujours en bas de la conversation.
-                        # Le rerun relit tout de suite l'historique complet (avec ce
-                        # nouvel échange déjà sauvegardé), qui s'affiche alors bien
-                        # AVANT le champ de saisie, comme attendu.
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erreur : {message_utilisateur_mistral(e)}")
+        nb_questions_posees = repository.compter_questions_chat(cours_id)
+        if not est_premium and nb_questions_posees >= NB_QUESTIONS_CHAT_GRATUIT:
+            _message_premium("Continuer cette discussion")
+        else:
+            if not est_premium:
+                restant_gratuit = NB_QUESTIONS_CHAT_GRATUIT - nb_questions_posees
+                st.caption(
+                    f"🔓 Version gratuite : encore {restant_gratuit} question"
+                    f"{'s' if restant_gratuit > 1 else ''} avant de passer en premium."
+                )
+            question = st.chat_input("Ta question sur le cours...")
+            if question:
+                with st.chat_message("user"):
+                    st.markdown(question)
+                with st.chat_message("assistant"):
+                    with st.spinner("Réflexion..."):
+                        try:
+                            poser_question(cours_id, identifiant, question)
+                            # Sans ce rerun, la nouvelle question et sa réponse restaient
+                            # affichées EN DESSOUS du champ de saisie (il est appelé avant
+                            # ce bloc dans le code) jusqu'à la prochaine interaction — le
+                            # champ ne semblait donc pas toujours en bas de la conversation.
+                            # Le rerun relit tout de suite l'historique complet (avec ce
+                            # nouvel échange déjà sauvegardé), qui s'affiche alors bien
+                            # AVANT le champ de saisie, comme attendu.
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erreur : {message_utilisateur_mistral(e)}")

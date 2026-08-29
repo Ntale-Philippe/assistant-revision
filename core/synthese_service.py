@@ -49,7 +49,9 @@ def generer_et_sauver_synthese(cours_id: int, proprietaire: str) -> dict:
         )
 
     examens_passes = repository.texte_examens_passes(cours_id)
-    profil = repository.obtenir_profil(proprietaire)
+    # La personnalisation (faculté/rêve/pays glissés dans les exemples) est un
+    # avantage premium : en version gratuite, la synthèse reste générique.
+    profil = repository.obtenir_profil(proprietaire) if repository.est_premium(proprietaire) else None
     prompt = prompt_synthese(cours["nom"], texte, examens_passes, profil)
     # Borne la longueur de la réponse : sans ça, la section "synthese" (ouverte, pas
     # de nombre fixe comme les questions de quiz) peut partir sur une réponse très

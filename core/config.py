@@ -23,6 +23,13 @@ DUREE_EXAMEN_MINUTES = 20
 NB_QUESTIONS_ECRIT = 5
 DUREE_EXAMEN_ECRIT_MINUTES = 15
 
+# Accès premium (3$ pour l'accès complet jusqu'à la fin du semestre, activé
+# manuellement par le propriétaire après un paiement reçu hors appli).
+DUREE_PREMIUM_JOURS = 120
+PRIX_PREMIUM = 3.0
+DEVISE_PREMIUM = "USD"
+NB_QUESTIONS_CHAT_GRATUIT = 2
+
 # Seuils pour les gros cours (beaucoup de documents, ou documents très longs).
 # Important : on envoie TOUJOURS tout le texte en un seul appel à l'IA (jamais
 # découpé en plusieurs appels), car le plan gratuit de Google limite le nombre de

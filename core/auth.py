@@ -20,6 +20,7 @@ import hashlib
 
 import streamlit as st
 
+from core import repository
 from core.config import get_api_key, get_shared_api_key
 
 PROPRIETAIRE_SOLO = "moi"
@@ -42,9 +43,17 @@ def get_identity() -> tuple[str | None, str | None, str | None]:
         cle_partagee = get_shared_api_key()
         if not cle_partagee:
             return None, None, None
-        resultat = (_identifiant(moi, mot), moi, cle_partagee)
+        identifiant = _identifiant(moi, mot)
+        resultat = (identifiant, moi, cle_partagee)
         st.session_state["identite"] = resultat
         st.session_state["identite_brute"] = (moi, mot)
+        # Retient le prénom affiché (indépendamment du profil facultatif) : sert
+        # uniquement à ce que le propriétaire reconnaisse qui est qui dans l'outil
+        # d'activation premium - l'identifiant seul est un hash illisible.
+        try:
+            repository.enregistrer_prenom(identifiant, moi)
+        except Exception:
+            pass  # ne bloque jamais la connexion pour ça
         return resultat
 
     if not moi:

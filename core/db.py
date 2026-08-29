@@ -207,16 +207,30 @@ CREATE TABLE IF NOT EXISTS licences (
 );
 
 CREATE TABLE IF NOT EXISTS profils (
-    -- Un profil facultatif par personne (identifiant, pas par cours) : sert à
-    -- personnaliser la section "à retenir pour la vie" de la synthèse en la reliant
-    -- à la filière et à l'objectif de vie de l'étudiant, plutôt que des généralités.
-    -- `pays` (auto-déclaré, pas de géolocalisation technique) sert uniquement aux
-    -- statistiques avancées (répartition géographique des étudiants).
+    -- Un profil par personne (identifiant, pas par cours). `prenom` est enregistré
+    -- automatiquement à chaque connexion (pas facultatif) : sert à toi seul à
+    -- reconnaître qui est qui dans l'outil de gestion des accès premium (l'identifiant
+    -- est un hash illisible). faculte/reve/pays restent facultatifs, remplis par
+    -- l'étudiant dans "Personnalise l'appli".
     identifiant TEXT PRIMARY KEY,
+    prenom TEXT,
     faculte TEXT,
     reve TEXT,
     pays TEXT,
     updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS premium (
+    -- Accès payant : une ligne = un étudiant qui a payé (par mobile money, hors
+    -- appli) et à qui tu as manuellement activé l'accès depuis la page cachée
+    -- Statistiques avancées. `expire_le` NULL = jamais (permanent), sinon date
+    -- limite (ex: fin de semestre).
+    identifiant TEXT PRIMARY KEY,
+    active_le TEXT DEFAULT (datetime('now')),
+    expire_le TEXT,
+    montant REAL,
+    devise TEXT DEFAULT 'USD',
+    note TEXT
 );
 
 CREATE TABLE IF NOT EXISTS messages_chat (
@@ -265,6 +279,8 @@ def _migrer_si_besoin(conn):
     colonnes_profils = {row["name"] for row in conn.execute("PRAGMA table_info(profils)").fetchall()}
     if "pays" not in colonnes_profils:
         conn.execute("ALTER TABLE profils ADD COLUMN pays TEXT")
+    if "prenom" not in colonnes_profils:
+        conn.execute("ALTER TABLE profils ADD COLUMN prenom TEXT")
 
     colonnes_licences = {row["name"] for row in conn.execute("PRAGMA table_info(licences)").fetchall()}
     if "expire_le" not in colonnes_licences:

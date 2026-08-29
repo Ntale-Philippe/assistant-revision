@@ -303,6 +303,99 @@ def sauver_profil(identifiant: str, faculte: str, reve: str, pays: str = ""):
         )
 
 
+def enregistrer_prenom(identifiant: str, prenom: str):
+    """Retient le prénom affiché à chaque connexion (indépendamment du profil
+    facultatif) : sert uniquement à ce que le propriétaire de l'appli reconnaisse
+    qui est qui dans l'outil d'activation premium (l'identifiant est un hash
+    illisible) - ne touche jamais aux autres champs du profil s'il existe déjà."""
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO profils (identifiant, prenom) VALUES (?, ?)
+               ON CONFLICT(identifiant) DO UPDATE SET prenom = excluded.prenom""",
+            (identifiant, prenom),
+        )
+
+
+# --- Accès premium -------------------------------------------------------------
+# Pas de code à acheter/taper : l'étudiant paie hors appli (mobile money) et
+# prévient le propriétaire, qui active manuellement l'accès depuis la page cachée
+# Statistiques avancées. Voir aussi core/premium.py pour la vérification d'accès.
+
+def est_premium(identifiant: str) -> bool:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT expire_le FROM premium WHERE identifiant = ?", (identifiant,)
+        ).fetchone()
+        if not row:
+            return False
+        if row["expire_le"] is None:
+            return True
+        return row["expire_le"] > _maintenant_iso()
+
+
+def _maintenant_iso() -> str:
+    import time
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+
+
+def activer_premium(identifiant: str, jours: int | None, montant: float | None, devise: str, note: str = ""):
+    """`jours` : durée de l'accès (None = permanent, jamais d'expiration)."""
+    expire_le = None
+    if jours is not None:
+        import datetime
+        expire_le = (datetime.datetime.utcnow() + datetime.timedelta(days=jours)).strftime("%Y-%m-%d %H:%M:%S")
+    with get_connection() as conn:
+        conn.execute(
+            """INSERT INTO premium (identifiant, active_le, expire_le, montant, devise, note)
+               VALUES (?, datetime('now'), ?, ?, ?, ?)
+               ON CONFLICT(identifiant) DO UPDATE SET
+                   active_le = datetime('now'),
+                   expire_le = excluded.expire_le,
+                   montant = excluded.montant,
+                   devise = excluded.devise,
+                   note = excluded.note""",
+            (identifiant, expire_le, montant, devise, note),
+        )
+
+
+def desactiver_premium(identifiant: str):
+    with get_connection() as conn:
+        conn.execute("DELETE FROM premium WHERE identifiant = ?", (identifiant,))
+
+
+def lister_candidats_premium() -> list[dict]:
+    """Tous les vrais étudiants (hors compte solo/démo), avec leur prénom connu,
+    leurs cours, et leur statut premium actuel - pour que le propriétaire retrouve
+    facilement qui activer après un paiement reçu par mobile money."""
+    with get_connection() as conn:
+        identifiants_cours = conn.execute(
+            f"""SELECT proprietaire, GROUP_CONCAT(nom, ', ') as cours_noms, COUNT(*) as nb_cours
+                FROM cours WHERE proprietaire NOT IN ({",".join("?" for _ in _IDENTIFIANTS_EXCLUS)})
+                GROUP BY proprietaire""",
+            _IDENTIFIANTS_EXCLUS,
+        ).fetchall()
+        profils_rows = conn.execute("SELECT identifiant, prenom FROM profils").fetchall()
+        premium_rows = conn.execute("SELECT identifiant, expire_le, montant, devise FROM premium").fetchall()
+
+    prenoms = {r["identifiant"]: r["prenom"] for r in profils_rows}
+    premiums = {r["identifiant"]: dict(r) for r in premium_rows}
+
+    resultat = []
+    for r in identifiants_cours:
+        identifiant = r["proprietaire"]
+        premium_info = premiums.get(identifiant)
+        resultat.append({
+            "identifiant": identifiant,
+            "prenom": prenoms.get(identifiant) or "(prénom inconnu)",
+            "cours_noms": r["cours_noms"],
+            "nb_cours": r["nb_cours"],
+            "est_premium": est_premium(identifiant),
+            "premium_expire_le": premium_info["expire_le"] if premium_info else None,
+        })
+    resultat.sort(key=lambda x: x["prenom"].lower())
+    return resultat
+
+
 # --- Chat (discussion libre sur un cours) ------------------------------------
 
 def ajouter_message_chat(cours_id: int, role: str, contenu: str) -> int:
@@ -320,6 +413,16 @@ def lister_messages_chat(cours_id: int) -> list[dict]:
             "SELECT * FROM messages_chat WHERE cours_id = ? ORDER BY created_at", (cours_id,)
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def compter_questions_chat(cours_id: int) -> int:
+    """Nombre de questions déjà posées (pas les réponses) sur ce cours - sert à la
+    limite de questions gratuites du chat."""
+    with get_connection() as conn:
+        return conn.execute(
+            "SELECT COUNT(*) as n FROM messages_chat WHERE cours_id = ? AND role = 'utilisateur'",
+            (cours_id,),
+        ).fetchone()["n"]
 
 
 def vider_chat(cours_id: int) -> None:
