@@ -210,9 +210,12 @@ CREATE TABLE IF NOT EXISTS profils (
     -- Un profil facultatif par personne (identifiant, pas par cours) : sert à
     -- personnaliser la section "à retenir pour la vie" de la synthèse en la reliant
     -- à la filière et à l'objectif de vie de l'étudiant, plutôt que des généralités.
+    -- `pays` (auto-déclaré, pas de géolocalisation technique) sert uniquement aux
+    -- statistiques avancées (répartition géographique des étudiants).
     identifiant TEXT PRIMARY KEY,
     faculte TEXT,
     reve TEXT,
+    pays TEXT,
     updated_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -258,6 +261,10 @@ def _migrer_si_besoin(conn):
     colonnes_tentatives = {row["name"] for row in conn.execute("PRAGMA table_info(tentatives)").fetchall()}
     if "details_json" not in colonnes_tentatives:
         conn.execute("ALTER TABLE tentatives ADD COLUMN details_json TEXT")
+
+    colonnes_profils = {row["name"] for row in conn.execute("PRAGMA table_info(profils)").fetchall()}
+    if "pays" not in colonnes_profils:
+        conn.execute("ALTER TABLE profils ADD COLUMN pays TEXT")
 
     colonnes_licences = {row["name"] for row in conn.execute("PRAGMA table_info(licences)").fetchall()}
     if "expire_le" not in colonnes_licences:

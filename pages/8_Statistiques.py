@@ -132,3 +132,11 @@ else:
                 {"Jour": list(insights["cours_par_jour"].keys()), "Cours créés": list(insights["cours_par_jour"].values())}
             )
             st.bar_chart(df.set_index("Jour"))
+
+        if insights["repartition_pays"]:
+            st.markdown("#### Répartition par pays")
+            st.caption("Auto-déclaré dans le profil facultatif — pas de géolocalisation technique.")
+            df_pays = pd.DataFrame(
+                {"Pays": list(insights["repartition_pays"].keys()), "Étudiants": list(insights["repartition_pays"].values())}
+            ).sort_values("Étudiants", ascending=False)
+            st.bar_chart(df_pays.set_index("Pays"))

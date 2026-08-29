@@ -4,6 +4,7 @@ import streamlit as st
 
 from core import repository
 from core.auth import PROPRIETAIRE_SOLO, exiger_identification, lien_personnel_actuel, oublier_identite
+from core.config import LISTE_PAYS
 from core.db import init_db
 from core.navigation import afficher_navigation
 
@@ -128,8 +129,11 @@ with st.expander("Personnalise l'appli (facultatif)"):
             value=profil_actuel.get("reve") or "",
             placeholder="Ex : Devenir chirurgien, ouvrir mon cabinet d'avocat...",
         )
+        pays_actuel = profil_actuel.get("pays") or ""
+        index_pays = LISTE_PAYS.index(pays_actuel) if pays_actuel in LISTE_PAYS else 0
+        pays = st.selectbox("Ton pays", LISTE_PAYS, index=index_pays)
         if st.form_submit_button("Enregistrer"):
-            repository.sauver_profil(identifiant, faculte.strip(), reve.strip())
+            repository.sauver_profil(identifiant, faculte.strip(), reve.strip(), pays)
             st.success("Profil enregistré.")
             st.rerun()
 

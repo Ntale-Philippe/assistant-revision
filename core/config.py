@@ -47,6 +47,21 @@ SEUIL_LIMITE_TECHNIQUE_CARACTERES = 850_000
 EXTENSIONS_DOCUMENTS = ["pdf", "txt", "pptx", "docx", "xlsx", "csv"]
 EXTENSIONS_IMAGES = ["png", "jpg", "jpeg"]
 
+# Liste de pays pour le profil facultatif (auto-déclaré, pas de géolocalisation
+# technique) : sert uniquement à la répartition géographique dans les statistiques
+# avancées. Pays francophones d'Afrique en tête (public principal de l'appli),
+# suivis d'une liste internationale large.
+LISTE_PAYS = [
+    "", "République démocratique du Congo", "Congo-Brazzaville", "Cameroun", "Côte d'Ivoire",
+    "Sénégal", "Mali", "Burkina Faso", "Bénin", "Togo", "Niger", "Guinée", "Rwanda", "Burundi",
+    "Gabon", "Tchad", "République centrafricaine", "Madagascar", "Maroc", "Algérie", "Tunisie",
+    "Belgique", "France", "Suisse", "Canada",
+    "Nigéria", "Kenya", "Ghana", "Afrique du Sud", "Égypte", "Éthiopie", "Ouganda", "Tanzanie",
+    "Zambie", "Zimbabwe", "Angola", "Mozambique",
+    "États-Unis", "Royaume-Uni", "Allemagne", "Espagne", "Italie", "Portugal",
+    "Chine", "Inde", "Brésil", "Autre",
+]
+
 
 def get_api_key() -> str | None:
     """Clé Gemini pour l'usage solo, en local sur ton PC (secrets.toml local).

@@ -289,16 +289,17 @@ def obtenir_profil(identifiant: str) -> dict | None:
         return dict(row) if row else None
 
 
-def sauver_profil(identifiant: str, faculte: str, reve: str):
+def sauver_profil(identifiant: str, faculte: str, reve: str, pays: str = ""):
     with get_connection() as conn:
         conn.execute(
-            """INSERT INTO profils (identifiant, faculte, reve, updated_at)
-               VALUES (?, ?, ?, datetime('now'))
+            """INSERT INTO profils (identifiant, faculte, reve, pays, updated_at)
+               VALUES (?, ?, ?, ?, datetime('now'))
                ON CONFLICT(identifiant) DO UPDATE SET
                    faculte = excluded.faculte,
                    reve = excluded.reve,
+                   pays = excluded.pays,
                    updated_at = excluded.updated_at""",
-            (identifiant, faculte, reve),
+            (identifiant, faculte, reve, pays),
         )
 
 
@@ -492,6 +493,24 @@ def insights_admin() -> dict:
             jour = c["created_at"][:10]
             cours_par_jour[jour] = cours_par_jour.get(jour, 0) + 1
 
+        # Répartition géographique (auto-déclarée dans le profil facultatif) : un
+        # étudiant qui n'a jamais rempli son pays apparaît sous "Non renseigné"
+        # plutôt que d'être ignoré, pour que le total corresponde au nombre d'inscrits.
+        identifiants_reels = {c["proprietaire"] for c in cours}
+        pays_par_identifiant = {}
+        if identifiants_reels:
+            placeholders_profils = ",".join("?" for _ in identifiants_reels)
+            rows = conn.execute(
+                f"SELECT identifiant, pays FROM profils WHERE identifiant IN ({placeholders_profils})",
+                tuple(identifiants_reels),
+            ).fetchall()
+            pays_par_identifiant = {r["identifiant"]: r["pays"] for r in rows}
+
+        repartition_pays = {}
+        for identifiant in identifiants_reels:
+            pays = (pays_par_identifiant.get(identifiant) or "").strip() or "Non renseigné"
+            repartition_pays[pays] = repartition_pays.get(pays, 0) + 1
+
     return {
         "nb_cours_total": len(cours),
         "cours_vides": cours_vides,
@@ -500,4 +519,5 @@ def insights_admin() -> dict:
         "documents_en_erreur": documents_en_erreur,
         "scores_par_type": scores_par_type,
         "cours_par_jour": cours_par_jour,
+        "repartition_pays": repartition_pays,
     }
