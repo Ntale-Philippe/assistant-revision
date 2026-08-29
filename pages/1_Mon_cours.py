@@ -66,7 +66,7 @@ if not repository.lister_documents(cours_id):
         "→ 2) Génère ta fiche dans l'onglet **Synthèse** → 3) Teste-toi dans l'onglet **Quiz**."
     )
 
-est_premium = repository.est_premium(identifiant)
+est_premium = repository.a_acces_debloque(identifiant)
 
 tab_docs, tab_synthese, tab_quiz, tab_chat = st.tabs(["Documents", "Synthèse", "Quiz", "Discussion"])
 

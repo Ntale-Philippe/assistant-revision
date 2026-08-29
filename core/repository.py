@@ -333,6 +333,15 @@ def est_premium(identifiant: str) -> bool:
         return row["expire_le"] > _maintenant_iso()
 
 
+def a_acces_debloque(identifiant: str) -> bool:
+    """À utiliser partout dans l'interface à la place de est_premium() directement :
+    tant que PREMIUM_ACTIF (core/config.py) est à False, tout le monde reste débloqué
+    (le paywall est construit mais pas encore lancé). Une fois PREMIUM_ACTIF passé à
+    True, redevient équivalent à est_premium()."""
+    from core.config import PREMIUM_ACTIF
+    return (not PREMIUM_ACTIF) or est_premium(identifiant)
+
+
 def _maintenant_iso() -> str:
     import time
     return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())

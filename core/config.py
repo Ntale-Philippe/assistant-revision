@@ -30,6 +30,13 @@ PRIX_PREMIUM = 3.0
 DEVISE_PREMIUM = "USD"
 NB_QUESTIONS_CHAT_GRATUIT = 2
 
+# Interrupteur général : tant que False, TOUT LE MONDE garde un accès complet et
+# gratuit (le verrouillage 🔒 reste invisible), même si le système premium est déjà
+# construit et actif techniquement. Le passer à True est une décision business (le
+# propriétaire a choisi de commencer à facturer), pas une conséquence automatique du
+# déploiement du code.
+PREMIUM_ACTIF = False
+
 # Seuils pour les gros cours (beaucoup de documents, ou documents très longs).
 # Important : on envoie TOUJOURS tout le texte en un seul appel à l'IA (jamais
 # découpé en plusieurs appels), car le plan gratuit de Google limite le nombre de
