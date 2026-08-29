@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 
 from core import repository
 from core.auth import exiger_identification
@@ -10,7 +11,13 @@ from core.chat_service import poser_question
 from core.config import EXTENSIONS_DOCUMENTS, EXTENSIONS_IMAGES, UPLOADS_DIR
 from core.db import init_db
 from core.extraction import extraire_texte, type_fichier_depuis_nom
-from core.gemini_client import GeminiNonConfigure, message_utilisateur
+from core.gemini_client import (
+    GeminiNonConfigure,
+    message_utilisateur,
+    peut_reessayer,
+    signaler_echec,
+    signaler_succes,
+)
 from core.navigation import afficher_navigation
 from core.quiz_service import generer_quiz
 from core.synthese_service import generer_et_sauver_synthese
@@ -43,6 +50,33 @@ if cours.get("description"):
     st.caption(cours["description"])
 
 tab_docs, tab_synthese, tab_quiz, tab_chat = st.tabs(["Documents", "Synthèse", "Quiz", "Discussion"])
+
+
+def _etat_bouton_ia(cle: str) -> tuple[bool, int]:
+    """Vérifie si le bouton lié à `cle` peut être cliqué (pas de cooldown en cours).
+
+    Si un cooldown est actif, déclenche un petit auto-rafraîchissement pour que le
+    bouton se réactive tout seul, sans que l'utilisateur ait besoin de recliquer
+    ailleurs sur la page."""
+    peut, restant = peut_reessayer(cle)
+    if not peut:
+        st_autorefresh(interval=1000, limit=restant + 1, key=f"cooldown_{cle}")
+    return peut, restant
+
+
+def _executer_generation_ia(cle: str, action):
+    """Exécute une génération IA, avec suivi du cooldown en cas d'échec.
+
+    En cas de succès : efface le cooldown et rafraîchit la page.
+    En cas d'échec : démarre un cooldown (pour empêcher de recliquer tout de suite,
+    ce qui aggrave un ralentissement passager côté Google) et affiche l'erreur."""
+    try:
+        action()
+        signaler_succes(cle)
+        st.rerun()
+    except Exception as e:
+        signaler_echec(cle)
+        st.error(f"Erreur : {message_utilisateur(e)}")
 
 # --- Onglet Documents ---------------------------------------------------------
 
@@ -129,14 +163,17 @@ with tab_synthese:
     with col1:
         st.subheader("Fiche de synthèse")
     with col2:
+        cle_cooldown = f"synthese_{cours_id}"
+        peut, restant = _etat_bouton_ia(cle_cooldown)
         label = "Régénérer" if synthese else "Générer"
-        if st.button(label):
+        if st.button(label, disabled=not peut):
             with st.spinner("L'IA lit tes documents et prépare ta fiche..."):
-                try:
-                    generer_et_sauver_synthese(cours_id, identifiant, api_key)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erreur : {message_utilisateur(e)}")
+                _executer_generation_ia(
+                    cle_cooldown,
+                    lambda: generer_et_sauver_synthese(cours_id, identifiant, api_key),
+                )
+    if not peut:
+        st.caption(f"Patiente {restant}s avant de recliquer (évite d'aggraver un ralentissement de l'IA).")
 
     if not synthese:
         st.info("Pas encore de synthèse. Ajoute des documents puis clique sur « Générer ».")
@@ -168,13 +205,16 @@ with tab_quiz:
         st.markdown("#### 1. Quiz diagnostique (avant révision)")
         st.caption("Pour repérer tes lacunes avant de commencer à réviser.")
         if not quiz_diag:
-            if st.button("Générer le quiz diagnostique"):
+            cle_cooldown = f"quiz_diag_{cours_id}"
+            peut, restant = _etat_bouton_ia(cle_cooldown)
+            if st.button("Générer le quiz diagnostique", disabled=not peut):
                 with st.spinner("Préparation des questions..."):
-                    try:
-                        generer_quiz(cours_id, identifiant, "diagnostique", api_key)
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erreur : {message_utilisateur(e)}")
+                    _executer_generation_ia(
+                        cle_cooldown,
+                        lambda: generer_quiz(cours_id, identifiant, "diagnostique", api_key),
+                    )
+            if not peut:
+                st.caption(f"Patiente {restant}s avant de recliquer.")
         elif not tentative_avant:
             if st.button("Passer le quiz (avant révision)"):
                 st.session_state["quiz_id"] = quiz_diag["id"]
@@ -206,23 +246,27 @@ with tab_quiz:
         with col1:
             st.markdown("#### 3. Examen blanc (chronométré)")
             st.caption("Le quiz le plus corsé, en conditions d'examen.")
+        cle_cooldown = f"examen_{cours_id}"
+        peut, restant = _etat_bouton_ia(cle_cooldown)
         if not quiz_examen:
-            if st.button("Générer l'examen blanc"):
+            if st.button("Générer l'examen blanc", disabled=not peut):
                 with st.spinner("Préparation de l'examen blanc..."):
-                    try:
-                        generer_quiz(cours_id, identifiant, "examen_blanc", api_key)
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erreur : {message_utilisateur(e)}")
+                    _executer_generation_ia(
+                        cle_cooldown,
+                        lambda: generer_quiz(cours_id, identifiant, "examen_blanc", api_key),
+                    )
+            if not peut:
+                st.caption(f"Patiente {restant}s avant de recliquer.")
         else:
             with col2:
-                if st.button("Régénérer", key="regenerer_examen"):
+                if st.button("Régénérer", key="regenerer_examen", disabled=not peut):
                     with st.spinner("Préparation d'un nouvel examen blanc..."):
-                        try:
-                            generer_quiz(cours_id, identifiant, "examen_blanc", api_key)
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Erreur : {message_utilisateur(e)}")
+                        _executer_generation_ia(
+                            cle_cooldown,
+                            lambda: generer_quiz(cours_id, identifiant, "examen_blanc", api_key),
+                        )
+            if not peut:
+                st.caption(f"Patiente {restant}s avant de recliquer.")
 
             if st.button("Passer l'examen blanc"):
                 st.session_state["quiz_id"] = quiz_examen["id"]

@@ -19,6 +19,29 @@ CODES_TEMPORAIRES = ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED")
 TENTATIVES_MAX = 3
 DELAI_INITIAL_SECONDES = 2
 
+# Après un échec, on empêche de recliquer tout de suite : cliquer 10 fois d'affilée
+# sur "Générer" ne fait qu'aggraver un ralentissement passager côté Google (chaque
+# clic relance nos propres tentatives automatiques par-dessus).
+DELAI_ENTRE_ESSAIS_SECONDES = 20
+
+
+def peut_reessayer(cle: str) -> tuple[bool, int]:
+    """Vérifie si assez de temps s'est écoulé depuis le dernier échec pour cette
+    action (ex: "synthese_12"). Retourne (peut_reessayer, secondes_restantes)."""
+    dernier_echec = st.session_state.get(f"echec_ia_{cle}")
+    if dernier_echec is None:
+        return True, 0
+    restant = int(DELAI_ENTRE_ESSAIS_SECONDES - (time.time() - dernier_echec))
+    return (restant <= 0), max(restant, 0)
+
+
+def signaler_echec(cle: str):
+    st.session_state[f"echec_ia_{cle}"] = time.time()
+
+
+def signaler_succes(cle: str):
+    st.session_state.pop(f"echec_ia_{cle}", None)
+
 
 class GeminiNonConfigure(Exception):
     """Levée quand la clé API n'est pas configurée."""
