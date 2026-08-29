@@ -78,16 +78,24 @@ def exiger_identification() -> tuple[str, str, str]:
         )
         st.stop()
 
-    st.write("Avant de commencer, indique ton prénom et invente un mot de passe.")
+    st.write(
+        "**Première visite ?** Choisis un prénom et invente un mot de passe.\n\n"
+        "**Déjà venu ?** Retape exactement le même prénom et le même mot de passe "
+        "pour retrouver ton espace — ce n'est pas une nouvelle inscription, tous tes "
+        "cours seront là."
+    )
 
     st.page_link("pages/6_Demo.py", label="Voir un exemple sans rien remplir")
 
     with st.form("identification_form"):
         nom = st.text_input("Ton prénom", placeholder="Ex : Alice")
         mot = st.text_input(
-            "Invente un mot de passe",
+            "Ton mot de passe",
             type="password",
-            help="Juste pour que ton espace reste privé, à toi seul. Retiens-le bien.",
+            help=(
+                "Nouveau ici : invente-en un et retiens-le bien. Déjà venu : "
+                "retape le même que la dernière fois."
+            ),
         )
         ok = st.form_submit_button("Commencer")
         if ok:
