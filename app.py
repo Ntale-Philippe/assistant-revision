@@ -22,7 +22,11 @@ afficher_navigation()
 
 identifiant, prenom, api_key = exiger_identification()
 
-st.title("Mon assistant de révision")
+col_logo, col_titre = st.columns([1, 6], vertical_alignment="center")
+with col_logo:
+    st.image("assets/icone.png", width=64)
+with col_titre:
+    st.title("Mon assistant de révision")
 st.write("**Pas de panique : révise à ton rythme, on s'occupe du reste.**")
 st.caption("Dépose tes notes, génère une synthèse et teste-toi avec des quiz.")
 
