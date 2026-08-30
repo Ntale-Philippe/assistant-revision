@@ -13,7 +13,10 @@ from core.db import init_db
 from core.navigation import afficher_navigation
 from core.quiz_service import corriger
 
-st.set_page_config(page_title="Démo", page_icon="assets/icone.png", layout="centered")
+st.set_page_config(
+    page_title="Démo", page_icon="assets/icone.png", layout="centered",
+    initial_sidebar_state="expanded",
+)
 init_db()
 afficher_navigation()
 

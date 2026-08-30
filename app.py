@@ -8,7 +8,14 @@ from core.config import LISTE_PAYS
 from core.db import init_db
 from core.navigation import afficher_navigation
 
-st.set_page_config(page_title="Mon assistant de révision", page_icon="assets/icone.png", layout="centered")
+st.set_page_config(
+    page_title="Mon assistant de révision",
+    page_icon="assets/icone.png",
+    layout="centered",
+    # Sans ça, le menu (Quiz, Progression, Statistiques...) reste caché derrière une
+    # simple flèche en haut à gauche, sans texte - facile à ne jamais remarquer.
+    initial_sidebar_state="expanded",
+)
 
 init_db()
 afficher_navigation()

@@ -10,7 +10,10 @@ from core.auth import exiger_identification
 from core.db import init_db
 from core.navigation import afficher_navigation
 
-st.set_page_config(page_title="Statistiques", page_icon="assets/icone.png", layout="centered")
+st.set_page_config(
+    page_title="Statistiques", page_icon="assets/icone.png", layout="centered",
+    initial_sidebar_state="expanded",
+)
 init_db()
 afficher_navigation()
 

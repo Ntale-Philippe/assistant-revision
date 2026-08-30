@@ -11,7 +11,10 @@ from core.db import init_db
 from core.navigation import afficher_navigation
 from core.quiz_service import corriger, message_resultat
 
-st.set_page_config(page_title="Quiz", page_icon="assets/icone.png", layout="centered")
+st.set_page_config(
+    page_title="Quiz", page_icon="assets/icone.png", layout="centered",
+    initial_sidebar_state="expanded",
+)
 init_db()
 afficher_navigation()
 
@@ -21,9 +24,21 @@ quiz_id = st.session_state.get("quiz_id")
 phase = st.session_state.get("phase")
 
 if not quiz_id or not phase:
-    st.warning("Aucun quiz sélectionné.")
-    if st.button("Retour"):
-        st.switch_page("app.py")
+    st.warning(
+        "Aucun quiz sélectionné pour l'instant.\n\n"
+        "Cette page sert à **passer** un quiz déjà généré — pour en démarrer un : "
+        "va dans **Mon cours**, ouvre l'onglet **Quiz**, génère-en un, puis clique "
+        "sur son bouton « Passer le quiz »."
+    )
+    # Si un cours est déjà ouvert dans cette session, on y renvoie directement ;
+    # sinon Mon cours afficherait à son tour "Aucun cours sélectionné" - autant
+    # renvoyer tout de suite à l'accueil pour en choisir/créer un.
+    if st.session_state.get("cours_id"):
+        if st.button("Aller à Mon cours"):
+            st.switch_page("pages/1_Mon_cours.py")
+    else:
+        if st.button("Aller à l'accueil"):
+            st.switch_page("app.py")
     st.stop()
 
 quiz_row = repository.obtenir_quiz(quiz_id)
@@ -132,18 +147,28 @@ if st.session_state.get("quiz_termine"):
             score_precedent = tentative_avant["score"]
     st.info(message_resultat(phase, score, score_max, score_precedent))
 
-    for i, q in enumerate(questions):
-        bonne = q["bonne_reponse_index"]
-        donnee = liste_reponses[i]
-        if donnee == bonne:
-            st.success(f"**{i + 1}.** {q['enonce']}")
-        else:
-            reponse_donnee = q["choix"][donnee] if donnee is not None else "(pas de réponse)"
-            st.error(f"**{i + 1}.** {q['enonce']}\n\nTa réponse : {reponse_donnee}\n\nBonne réponse : {q['choix'][bonne]}")
-        if q.get("explication"):
-            st.caption(q["explication"])
-
-    if st.button("Retour au cours"):
+    def _retour_au_cours():
         for cle in ["quiz_session_key", "reponses", "quiz_debut", "quiz_termine", "resultat_sauve"]:
             st.session_state.pop(cle, None)
         st.switch_page("pages/1_Mon_cours.py")
+
+    # Bouton dupliqué en haut ET en bas : sans ça, il faut faire défiler toutes les
+    # explications de correction (jusqu'à 15 questions pour l'examen blanc) juste
+    # pour quitter la page.
+    if st.button("Retour au cours", key="retour_haut"):
+        _retour_au_cours()
+
+    with st.expander("Voir la correction détaillée, question par question"):
+        for i, q in enumerate(questions):
+            bonne = q["bonne_reponse_index"]
+            donnee = liste_reponses[i]
+            if donnee == bonne:
+                st.success(f"**{i + 1}.** {q['enonce']}")
+            else:
+                reponse_donnee = q["choix"][donnee] if donnee is not None else "(pas de réponse)"
+                st.error(f"**{i + 1}.** {q['enonce']}\n\nTa réponse : {reponse_donnee}\n\nBonne réponse : {q['choix'][bonne]}")
+            if q.get("explication"):
+                st.caption(q["explication"])
+
+    if st.button("Retour au cours", key="retour_bas"):
+        _retour_au_cours()

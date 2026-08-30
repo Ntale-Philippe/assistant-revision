@@ -14,7 +14,10 @@ from core.mistral_client import message_utilisateur
 from core.navigation import afficher_navigation
 from core.quiz_service import corriger_ecrit, message_resultat
 
-st.set_page_config(page_title="Examen écrit", page_icon="assets/icone.png", layout="centered")
+st.set_page_config(
+    page_title="Examen écrit", page_icon="assets/icone.png", layout="centered",
+    initial_sidebar_state="expanded",
+)
 init_db()
 afficher_navigation()
 

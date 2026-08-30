@@ -30,7 +30,10 @@ from core.navigation import afficher_navigation
 from core.quiz_service import generer_quiz, generer_quiz_ecrit
 from core.synthese_service import generer_et_sauver_synthese
 
-st.set_page_config(page_title="Mon cours", page_icon="assets/icone.png", layout="centered")
+st.set_page_config(
+    page_title="Mon cours", page_icon="assets/icone.png", layout="centered",
+    initial_sidebar_state="expanded",
+)
 init_db()
 afficher_navigation()
 
@@ -331,18 +334,24 @@ with tab_synthese:
     _afficher_cooldown(cle_cooldown, peut, restant)
 
     if not synthese:
-        st.info("Pas encore de synthèse. Ajoute des documents puis clique sur « Générer ».")
+        if repository.lister_documents(cours_id):
+            # Documents déjà là : le seul mot qui manque, c'est "clique" - dire à
+            # nouveau "ajoute des documents" ferait croire que le dépôt a échoué.
+            st.info("Clique sur « Générer » ci-dessus pour créer ta fiche de synthèse.")
+        else:
+            st.info("Ajoute d'abord un document (onglet Documents), puis clique sur « Générer ».")
     else:
-        with st.expander("Synthèse du cours", expanded=True):
+        st.caption("À lire dans l'ordre : le résumé d'abord, le reste pour approfondir.")
+        with st.expander("Synthèse du cours", expanded=True, icon=":material/summarize:"):
             st.markdown(synthese["synthese_md"])
-        with st.expander("Pourquoi ce sujet est important"):
+        with st.expander("Pourquoi ce sujet est important", icon=":material/lightbulb:"):
             st.markdown(synthese["contexte_md"])
-        with st.expander("Notions probables à l'examen"):
+        with st.expander("Notions probables à l'examen", icon=":material/target:"):
             st.markdown(synthese["notions_examen_md"])
-        with st.expander("À retenir pour la vie"):
+        with st.expander("À retenir pour la vie", icon=":material/favorite:"):
             st.caption("💫 Des faits et petites histoires intéressants à connaître, au-delà de l'examen.")
             st.markdown(synthese["a_retenir_md"])
-        with st.expander("Anecdotes"):
+        with st.expander("Anecdotes", icon=":material/auto_awesome:"):
             st.markdown(synthese["fun_facts_md"])
 
 # --- Onglet Quiz -----------------------------------------------------------------
