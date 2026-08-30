@@ -130,21 +130,30 @@ if st.session_state.get("quiz_termine"):
     liste_reponses = [reponses[i] for i in range(len(questions))]
     score, score_max = corriger(questions, liste_reponses)
 
+    score_precedent = None
+    if phase == "apres":
+        tentative_avant = repository.derniere_tentative(quiz_id, "avant")
+        if tentative_avant:
+            score_precedent = tentative_avant["score"]
+
     if not st.session_state.get("resultat_sauve"):
         duree_secondes = int(time.time() - st.session_state["quiz_debut"])
         repository.sauver_tentative(quiz_id, phase, score, score_max, duree_secondes, liste_reponses)
         st.session_state["resultat_sauve"] = True
+
+        # Petite célébration ponctuelle, une seule fois (pas à chaque rafraîchissement
+        # de la page, ex: en ouvrant la correction détaillée juste en dessous) : soit
+        # un sans-faute, soit une vraie progression par rapport à avant révision.
+        if score_max and score == score_max:
+            st.balloons()
+        elif phase == "apres" and score_precedent is not None and score > score_precedent:
+            st.balloons()
 
     st.divider()
     st.subheader(f"Résultat : {score} / {score_max}")
     pourcentage = round(100 * score / score_max) if score_max else 0
     st.progress(pourcentage / 100, text=f"{pourcentage}%")
 
-    score_precedent = None
-    if phase == "apres":
-        tentative_avant = repository.derniere_tentative(quiz_id, "avant")
-        if tentative_avant:
-            score_precedent = tentative_avant["score"]
     st.info(message_resultat(phase, score, score_max, score_precedent))
 
     def _retour_au_cours():

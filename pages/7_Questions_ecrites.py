@@ -104,6 +104,10 @@ def _corriger_et_sauver():
     st.session_state["ecrit_termine"] = True
     duree_secondes = int(time.time() - st.session_state["ecrit_debut"])
     repository.sauver_tentative(quiz_id, "ecrit", score, score_max, duree_secondes, reponses_texte, details)
+    # Cette fonction n'est appelée qu'une fois par soumission (jamais au réaffichage
+    # du résultat) : pas de risque de répéter la célébration à chaque interaction.
+    if score_max and score == score_max:
+        st.session_state["ecrit_celebrer"] = True
 
 
 if not termine:
@@ -125,6 +129,8 @@ if not termine:
 
 if termine and st.session_state.get("ecrit_resultat"):
     resultat = st.session_state["ecrit_resultat"]
+    if st.session_state.pop("ecrit_celebrer", False):
+        st.balloons()
     st.divider()
     st.subheader(f"Résultat : {resultat['score']} / {resultat['score_max']}")
     pourcentage = round(100 * resultat["score"] / resultat["score_max"]) if resultat["score_max"] else 0

@@ -60,14 +60,35 @@ st.title(cours["nom"])
 if cours.get("description"):
     st.caption(cours["description"])
 
-if not repository.lister_documents(cours_id):
-    # Guide affiché uniquement tant que le cours est vide (première visite) : une
-    # fois des documents déposés, il disparaît tout seul pour ne pas alourdir
-    # l'appli à chaque visite ensuite.
-    st.info(
-        "**Comment ça marche :** 1) Dépose tes documents dans l'onglet **Documents** "
-        "→ 2) Génère ta fiche dans l'onglet **Synthèse** → 3) Teste-toi dans l'onglet **Quiz**."
-    )
+def _message_guide(cours_id: int):
+    """Montre toujours LA prochaine étape la plus utile pour CE cours précis, plutôt
+    qu'un mode d'emploi générique figé qui ne s'affichait qu'une fois (avant le tout
+    premier document). Comme ça, un étudiant qui revient après 3 jours sait quoi
+    faire sans avoir à se souvenir où il en était - et une fois les bases explorées,
+    le message disparaît tout seul pour ne pas alourdir l'appli à chaque visite."""
+    if not repository.lister_documents(cours_id):
+        st.info("📄 Dépose au moins un document dans l'onglet **Documents** pour commencer.")
+        return
+    if not repository.derniere_synthese(cours_id):
+        st.info("🧠 Génère ta fiche de synthèse dans l'onglet **Synthèse**.")
+        return
+    quiz_diag = repository.obtenir_quiz_par_type(cours_id, "diagnostique")
+    if not quiz_diag:
+        st.info("✅ Teste tes connaissances avec le quiz diagnostique, dans l'onglet **Quiz**.")
+        return
+    if not repository.derniere_tentative(quiz_diag["id"], "avant"):
+        st.info("▶️ Passe le quiz diagnostique (onglet **Quiz**) pour voir où tu en es avant de réviser.")
+        return
+    if not repository.derniere_tentative(quiz_diag["id"], "apres"):
+        st.info("📚 Révise avec ta fiche de synthèse, puis repasse le même quiz pour mesurer ta progression.")
+        return
+    if not repository.lister_messages_chat(cours_id):
+        st.info("💬 Une question sur ce cours ? Essaie l'onglet **Discussion** — l'IA répond à partir de tes documents.")
+        return
+    # Les bases ont toutes été essayées au moins une fois : plus rien à suggérer.
+
+
+_message_guide(cours_id)
 
 est_premium = repository.a_acces_debloque(identifiant)
 
@@ -94,11 +115,13 @@ def _etat_bouton_ia(cle: str) -> tuple[bool, int]:
     return peut, restant
 
 
-def _executer_generation_ia(cle: str, action):
+def _executer_generation_ia(cle: str, action, cle_celebration: str | None = None):
     """Exécute une génération IA (synthèse/quiz, via Mistral), avec suivi du cooldown
     en cas d'échec.
 
-    En cas de succès : efface le cooldown et rafraîchit la page.
+    En cas de succès : efface le cooldown et rafraîchit la page. Si `cle_celebration`
+    est fourni, retient qu'il faudra célébrer (st.balloons()) juste après le rechargement
+    — impossible de le faire ici directement, le st.rerun() juste après l'effacerait.
     En cas d'échec : démarre un cooldown (pour empêcher de recliquer tout de suite,
     ce qui aggraverait un ralentissement passager), et RETIENT le message d'erreur
     en session (sinon le compte à rebours du cooldown, qui rafraîchit la page chaque
@@ -107,6 +130,8 @@ def _executer_generation_ia(cle: str, action):
         action()
         signaler_succes(cle)
         st.session_state.pop(f"derniere_erreur_{cle}", None)
+        if cle_celebration:
+            st.session_state[cle_celebration] = True
         st.rerun()
     except Exception as e:
         signaler_echec(cle)
@@ -328,10 +353,15 @@ with tab_synthese:
                 _executer_generation_ia(
                     cle_cooldown,
                     lambda: generer_et_sauver_synthese(cours_id, identifiant),
+                    cle_celebration=f"celebrer_synthese_{cours_id}" if not synthese else None,
                 )
     if verrouille:
         _message_premium("Régénérer la synthèse")
     _afficher_cooldown(cle_cooldown, peut, restant)
+
+    if st.session_state.pop(f"celebrer_synthese_{cours_id}", False):
+        st.balloons()
+        st.success("Ta première fiche de synthèse est prête ! 🎉")
 
     if not synthese:
         if repository.lister_documents(cours_id):
