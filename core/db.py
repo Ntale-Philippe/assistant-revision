@@ -210,10 +210,13 @@ CREATE TABLE IF NOT EXISTS profils (
     -- Un profil par personne (identifiant, pas par cours). `prenom` est enregistré
     -- automatiquement à chaque connexion (pas facultatif) : sert à toi seul à
     -- reconnaître qui est qui dans l'outil de gestion des accès premium (l'identifiant
-    -- est un hash illisible). faculte/reve/pays restent facultatifs, remplis par
-    -- l'étudiant dans "Personnalise l'appli".
+    -- est un hash illisible). `surnom` (facultatif) permet de distinguer deux
+    -- personnes avec le même prénom (ex: deux "Philippe") - sans lui, impossible de
+    -- savoir lequel des deux demande un renouvellement. faculte/reve/pays restent
+    -- facultatifs eux aussi, remplis par l'étudiant dans "Personnalise l'appli".
     identifiant TEXT PRIMARY KEY,
     prenom TEXT,
+    surnom TEXT,
     faculte TEXT,
     reve TEXT,
     pays TEXT,
@@ -281,6 +284,8 @@ def _migrer_si_besoin(conn):
         conn.execute("ALTER TABLE profils ADD COLUMN pays TEXT")
     if "prenom" not in colonnes_profils:
         conn.execute("ALTER TABLE profils ADD COLUMN prenom TEXT")
+    if "surnom" not in colonnes_profils:
+        conn.execute("ALTER TABLE profils ADD COLUMN surnom TEXT")
 
     colonnes_licences = {row["name"] for row in conn.execute("PRAGMA table_info(licences)").fetchall()}
     if "expire_le" not in colonnes_licences:

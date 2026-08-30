@@ -137,8 +137,18 @@ with st.expander("Personnalise l'appli (facultatif)"):
         pays_actuel = profil_actuel.get("pays") or ""
         index_pays = LISTE_PAYS.index(pays_actuel) if pays_actuel in LISTE_PAYS else 0
         pays = st.selectbox("Ton pays", LISTE_PAYS, index=index_pays)
+        surnom = st.text_input(
+            "Ton surnom (à la fac, au quartier, au travail...)",
+            value=profil_actuel.get("surnom") or "",
+            placeholder="Ex : Doudou, Ti-Phil...",
+            help=(
+                "Utile s'il y a plusieurs personnes avec le même prénom que toi : "
+                "ça permet au propriétaire de l'appli de savoir à qui il parle, "
+                "par exemple pour activer un accès premium."
+            ),
+        )
         if st.form_submit_button("Enregistrer"):
-            repository.sauver_profil(identifiant, faculte.strip(), reve.strip(), pays)
+            repository.sauver_profil(identifiant, faculte.strip(), reve.strip(), pays, surnom.strip())
             st.success("Profil enregistré.")
             st.rerun()
 

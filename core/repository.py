@@ -289,17 +289,18 @@ def obtenir_profil(identifiant: str) -> dict | None:
         return dict(row) if row else None
 
 
-def sauver_profil(identifiant: str, faculte: str, reve: str, pays: str = ""):
+def sauver_profil(identifiant: str, faculte: str, reve: str, pays: str = "", surnom: str = ""):
     with get_connection() as conn:
         conn.execute(
-            """INSERT INTO profils (identifiant, faculte, reve, pays, updated_at)
-               VALUES (?, ?, ?, ?, datetime('now'))
+            """INSERT INTO profils (identifiant, faculte, reve, pays, surnom, updated_at)
+               VALUES (?, ?, ?, ?, ?, datetime('now'))
                ON CONFLICT(identifiant) DO UPDATE SET
                    faculte = excluded.faculte,
                    reve = excluded.reve,
                    pays = excluded.pays,
+                   surnom = excluded.surnom,
                    updated_at = excluded.updated_at""",
-            (identifiant, faculte, reve, pays),
+            (identifiant, faculte, reve, pays, surnom),
         )
 
 
@@ -383,19 +384,23 @@ def lister_candidats_premium() -> list[dict]:
                 GROUP BY proprietaire""",
             _IDENTIFIANTS_EXCLUS,
         ).fetchall()
-        profils_rows = conn.execute("SELECT identifiant, prenom FROM profils").fetchall()
+        profils_rows = conn.execute("SELECT identifiant, prenom, surnom FROM profils").fetchall()
         premium_rows = conn.execute("SELECT identifiant, expire_le, montant, devise FROM premium").fetchall()
 
-    prenoms = {r["identifiant"]: r["prenom"] for r in profils_rows}
+    profils = {r["identifiant"]: r for r in profils_rows}
     premiums = {r["identifiant"]: dict(r) for r in premium_rows}
 
     resultat = []
     for r in identifiants_cours:
         identifiant = r["proprietaire"]
         premium_info = premiums.get(identifiant)
+        profil = profils.get(identifiant)
         resultat.append({
             "identifiant": identifiant,
-            "prenom": prenoms.get(identifiant) or "(prénom inconnu)",
+            "prenom": (profil["prenom"] if profil else None) or "(prénom inconnu)",
+            # Distingue deux personnes ayant le même prénom (ex: deux "Philippe") -
+            # sans ça, impossible de savoir laquelle demande un renouvellement.
+            "surnom": (profil["surnom"] if profil else None) or "",
             "cours_noms": r["cours_noms"],
             "nb_cours": r["nb_cours"],
             "est_premium": est_premium(identifiant),

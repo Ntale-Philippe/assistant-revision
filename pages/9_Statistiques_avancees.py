@@ -60,7 +60,8 @@ if not candidats:
     st.caption("Aucun étudiant (hors ton compte solo et la démo) n'a encore créé de cours.")
 else:
     noms_affiches = {
-        f"{c['prenom']} — {c['nb_cours']} cours ({c['cours_noms']}) "
+        f"{c['prenom']}" + (f" ({c['surnom']})" if c['surnom'] else "") +
+        f" — {c['nb_cours']} cours ({c['cours_noms']}) "
         f"{'🟢 premium' if c['est_premium'] else '⚪ gratuit'} — id {c['identifiant'][:8]}...": c
         for c in candidats
     }
