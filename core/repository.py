@@ -279,6 +279,28 @@ def historique_tentatives(cours_id: int, type_quiz: str) -> list[dict]:
     return resultat
 
 
+def lister_sans_fautes(identifiant: str) -> list[dict]:
+    """Tous les sans-fautes (score = score_max) obtenus par cet étudiant sur les
+    deux examens chronométrés (examen blanc, examen écrit), TOUS cours confondus -
+    purement un badge personnel à consulter sur la page Progression, qui ne
+    débloque rien et ne s'échange contre rien (décision produit du 2026-08-30 :
+    éviter tout système de "monnaie" à faire farmer)."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """SELECT t.score, t.score_max, t.created_at, q.type AS type_quiz, c.nom AS cours_nom
+               FROM tentatives t
+               JOIN quiz q ON q.id = t.quiz_id
+               JOIN cours c ON c.id = q.cours_id
+               WHERE c.proprietaire = ?
+                 AND q.type IN ('examen_blanc', 'reponse_ecrite')
+                 AND t.score_max > 0
+                 AND t.score = t.score_max
+               ORDER BY t.created_at DESC""",
+            (identifiant,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
 # --- Profil (facultatif, pour personnaliser "à retenir pour la vie") ---------
 
 def obtenir_profil(identifiant: str) -> dict | None:

@@ -29,6 +29,23 @@ if not cours_list:
     st.info("Aucun cours pour l'instant.")
     st.stop()
 
+# --- Sans-fautes (badge personnel, tous cours confondus) --------------------
+# Placé avant le sélecteur par cours ci-dessous : contrairement au reste de cette
+# page, ça couvre TOUS les cours d'un coup, pas seulement celui sélectionné.
+sans_fautes = repository.lister_sans_fautes(identifiant)
+if sans_fautes:
+    st.subheader("⭐ Tes sans-fautes")
+    st.caption(
+        "Un sans-faute à l'examen blanc ou à l'examen écrit, tous cours confondus — "
+        "juste pour le plaisir de les revoir, ça ne débloque rien de particulier."
+    )
+    noms_types = {"examen_blanc": "Examen blanc", "reponse_ecrite": "Examen écrit"}
+    for sf in sans_fautes:
+        date_affichee = sf["created_at"][:10]
+        st.write(f"⭐ **{noms_types.get(sf['type_quiz'], sf['type_quiz'])}** — {sf['cours_nom']} ({date_affichee})")
+    st.caption(f"Total : {len(sans_fautes)} sans-faute{'s' if len(sans_fautes) > 1 else ''}.")
+    st.divider()
+
 cours_id_defaut = st.session_state.get("cours_id_progression") or st.session_state.get("cours_id")
 noms = [c["nom"] for c in cours_list]
 ids = [c["id"] for c in cours_list]
