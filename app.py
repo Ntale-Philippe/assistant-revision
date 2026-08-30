@@ -22,12 +22,13 @@ afficher_navigation()
 
 identifiant, prenom, api_key = exiger_identification()
 
-col_logo, col_titre = st.columns([1, 6], vertical_alignment="center")
-with col_logo:
-    st.image("assets/icone.png", width=64)
-with col_titre:
-    st.title("Mon assistant de révision")
-st.write("**Pas de panique : révise à ton rythme, on s'occupe du reste.**")
+st.markdown(
+    '<p style="font-size:2.8rem; font-weight:800; color:#c9a227; '
+    'letter-spacing:0.08em; margin-bottom:-0.6rem;">AKILI</p>',
+    unsafe_allow_html=True,
+)
+st.title("Mon assistant de révision")
+st.write("**Pas de panique : révise à ton rythme, je m'occupe du reste.**")
 st.caption("Dépose tes notes, génère une synthèse et teste-toi avec des quiz.")
 
 if identifiant != PROPRIETAIRE_SOLO:

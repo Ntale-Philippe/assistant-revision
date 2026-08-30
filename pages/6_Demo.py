@@ -22,9 +22,8 @@ afficher_navigation()
 
 st.title("Exemple concret, sans rien remplir")
 st.write(
-    "Voici un vrai résultat généré par cette appli à partir d'un cours de "
-    "macroéconomie — pour te donner une idée avant de créer ton propre accès "
-    "gratuit."
+    "👋 C'est moi, Akili, qui ai préparé ça à partir d'un cours de macroéconomie — "
+    "pour te donner une idée avant de créer ton propre accès gratuit."
 )
 
 cours_demo_liste = repository.lister_cours(IDENTIFIANT_DEMO)

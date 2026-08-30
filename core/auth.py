@@ -78,6 +78,11 @@ def exiger_identification() -> tuple[str, str, str]:
     if identifiant and cle_api:
         return identifiant, prenom, cle_api
 
+    st.markdown(
+        '<p style="font-size:2.2rem; font-weight:800; color:#c9a227; '
+        'letter-spacing:0.08em; margin-bottom:-0.6rem;">AKILI</p>',
+        unsafe_allow_html=True,
+    )
     st.title("Bienvenue")
 
     if not get_shared_api_key() and not get_api_key():
@@ -86,6 +91,8 @@ def exiger_identification() -> tuple[str, str, str]:
             "Réessaie plus tard."
         )
         st.stop()
+
+    st.write("👋 Salut, moi c'est Akili et je suis là pour te préparer aux examens que tu vas passer.")
 
     st.markdown(
         "📄 **Dépose tes notes de cours** (PDF, photos, captures d'écran)\n\n"
