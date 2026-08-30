@@ -35,8 +35,11 @@ def prompt_synthese(nom_cours: str, texte: str, examens_passes: str = "", profil
         "une estimation générale, chaque fois que c'est possible.",
     )
 
-    faculte = (profil or {}).get("faculte", "").strip()
-    reve = (profil or {}).get("reve", "").strip()
+    # .get(clé, "") ne suffit pas ici : la ligne existe dans profils dès la connexion
+    # (prénom auto-enregistré), donc la clé est présente mais peut valoir None si
+    # l'étudiant n'a jamais rempli "Personnalise l'appli" - `.strip()` sur None plante.
+    faculte = ((profil or {}).get("faculte") or "").strip()
+    reve = ((profil or {}).get("reve") or "").strip()
     if faculte or reve:
         elements = []
         if faculte:
