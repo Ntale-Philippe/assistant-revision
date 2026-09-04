@@ -14,6 +14,15 @@ from core.prompts import PROMPT_OCR_IMAGE, PROMPT_OCR_PDF_SCANNE
 # (pas de couche texte) et on le fait lire directement par Gemini.
 SEUIL_TEXTE_PDF_INSUFFISANT = 50
 
+# Gemini n'accepte les fichiers envoyés "en ligne" dans la requête (comme le fait
+# cette appli, sans passer par son API de fichiers séparée) que jusqu'à ~20 Mo au
+# total, encodage inclus - au-delà, la lecture échoue avec une erreur technique peu
+# claire pour l'utilisateur. Streamlit, lui, autorise jusqu'à 200 Mo par fichier :
+# sans cette vérification, un gros scan (fréquent pour des pages scannées en haute
+# résolution) est accepté à l'upload mais échoue silencieusement à la lecture.
+# Marge prise sous la limite réelle pour l'encodage et le prompt qui l'accompagne.
+TAILLE_MAX_OCR_OCTETS = 15 * 1024 * 1024  # 15 Mo
+
 MIME_PAR_EXTENSION = {
     "png": "image/png",
     "jpg": "image/jpeg",
@@ -58,6 +67,7 @@ def extraire_texte(chemin_stocke: str, nom_original: str, api_key: str) -> str:
         ext = Path(nom_original).suffix.lower().lstrip(".")
         mime_type = MIME_PAR_EXTENSION.get(ext, "image/png")
         image_bytes = chemin.read_bytes()
+        _verifier_taille_ocr(image_bytes, nom_original)
         return lire_image(image_bytes, mime_type, PROMPT_OCR_IMAGE, api_key)
 
     if type_fichier == "pdf":
@@ -65,10 +75,28 @@ def extraire_texte(chemin_stocke: str, nom_original: str, api_key: str) -> str:
         texte = _extraire_texte_pdf_local(chemin)
         if len(texte.strip()) < SEUIL_TEXTE_PDF_INSUFFISANT:
             # PDF probablement scanné (pas de couche texte) : on demande à Gemini de le lire.
+            _verifier_taille_ocr(pdf_bytes, nom_original)
             return lire_pdf(pdf_bytes, PROMPT_OCR_PDF_SCANNE, api_key)
         return texte
 
     raise ValueError(f"Type de fichier non supporté : {nom_original}")
+
+
+def _verifier_taille_ocr(contenu: bytes, nom_original: str):
+    """Bloque AVANT d'appeler Gemini si le fichier dépasse la limite technique -
+    sinon l'échec arrive côté Gemini avec un message d'erreur technique difficile
+    à comprendre (ex: scan de plusieurs pages en haute résolution, très courant
+    pour un document composé d'images scannées)."""
+    if len(contenu) <= TAILLE_MAX_OCR_OCTETS:
+        return
+    taille_mo = len(contenu) / (1024 * 1024)
+    limite_mo = TAILLE_MAX_OCR_OCTETS / (1024 * 1024)
+    raise ValueError(
+        f"fichier trop volumineux pour être lu par l'IA ({taille_mo:.1f} Mo, limite "
+        f"~{limite_mo:.0f} Mo pour une image ou un PDF scanné). Essaie de le scanner "
+        "en plus basse résolution, de le compresser, ou de diviser le document en "
+        "plusieurs fichiers plus petits."
+    )
 
 
 def _extraire_texte_pdf_local(chemin: Path) -> str:
