@@ -124,11 +124,44 @@ def exiger_identification() -> tuple[str, str, str]:
         ok = st.form_submit_button("Commencer")
         if ok:
             if nom.strip() and mot.strip():
-                st.query_params["moi"] = nom.strip()
-                st.query_params["mot"] = mot.strip()
-                st.rerun()
+                st.session_state["identification_en_attente"] = (nom.strip(), mot.strip())
             else:
                 st.error("Les deux champs sont obligatoires.")
+
+    en_attente = st.session_state.get("identification_en_attente")
+    if en_attente:
+        nom_attente, mot_attente = en_attente
+        identifiant_calcule = _identifiant(nom_attente, mot_attente)
+        # N'avertit que pour un espace tout neuf (jamais utilisé sous cet identifiant
+        # précis) : quelqu'un qui revient sur son propre espace ne doit jamais voir
+        # ça, même si un autre "Cici" existe par ailleurs.
+        if (
+            not repository.a_deja_un_espace(identifiant_calcule)
+            and repository.prenom_deja_utilise_ailleurs(nom_attente, identifiant_calcule)
+        ):
+            st.warning(
+                f"Il existe déjà un espace avec le prénom « {nom_attente} », mais un "
+                "mot de passe différent de celui que tu viens de taper. Si tu as déjà "
+                "utilisé cette appli, vérifie que tu tapes exactement le même mot de "
+                "passe qu'avant (majuscules, espaces...) plutôt que de continuer ici — "
+                "sinon tu risques de te retrouver dans un espace vide séparé du tien."
+            )
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Réessayer"):
+                    st.session_state.pop("identification_en_attente", None)
+                    st.rerun()
+            with col2:
+                if st.button("Continuer quand même (nouvel espace)"):
+                    st.session_state.pop("identification_en_attente", None)
+                    st.query_params["moi"] = nom_attente
+                    st.query_params["mot"] = mot_attente
+                    st.rerun()
+        else:
+            st.session_state.pop("identification_en_attente", None)
+            st.query_params["moi"] = nom_attente
+            st.query_params["mot"] = mot_attente
+            st.rerun()
 
     st.page_link("pages/5_Conditions.py", label="Conditions d'utilisation")
 

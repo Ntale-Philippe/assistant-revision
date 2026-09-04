@@ -339,6 +339,32 @@ def enregistrer_prenom(identifiant: str, prenom: str):
         )
 
 
+def prenom_deja_utilise_ailleurs(prenom: str, identifiant_actuel: str) -> bool:
+    """Vrai si ce prénom est déjà associé à un AUTRE identifiant (donc un autre mot
+    de passe, puisque l'identifiant = hash(prénom + mot de passe)). Sert à repérer
+    une probable erreur de frappe sur le mot de passe plutôt qu'un vrai nouveau
+    visiteur - cas réel rencontré : la même personne s'était retrouvée avec 3
+    espaces vides différents, sans aucun moyen de le remarquer avant de commencer
+    à déposer des documents dans le mauvais."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM profils WHERE LOWER(prenom) = LOWER(?) AND identifiant != ? LIMIT 1",
+            (prenom.strip(), identifiant_actuel),
+        ).fetchone()
+        return row is not None
+
+
+def a_deja_un_espace(identifiant: str) -> bool:
+    """Vrai si cet identifiant précis a déjà été utilisé (au moins un cours créé,
+    ou un profil déjà enregistré) - permet de ne montrer l'avertissement de prénom
+    en doublon que pour un espace tout neuf, jamais pour quelqu'un qui revient
+    simplement sur son propre espace déjà connu."""
+    with get_connection() as conn:
+        if conn.execute("SELECT 1 FROM cours WHERE proprietaire = ? LIMIT 1", (identifiant,)).fetchone():
+            return True
+        return conn.execute("SELECT 1 FROM profils WHERE identifiant = ? LIMIT 1", (identifiant,)).fetchone() is not None
+
+
 # --- Accès premium -------------------------------------------------------------
 # Pas de code à acheter/taper : l'étudiant paie hors appli (mobile money) et
 # prévient le propriétaire, qui active manuellement l'accès depuis la page cachée
