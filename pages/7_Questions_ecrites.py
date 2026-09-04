@@ -53,6 +53,7 @@ if st.session_state.get("ecrit_session_key") != session_key:
     st.session_state["ecrit_termine"] = False
     st.session_state["ecrit_debut"] = time.time()
     st.session_state.pop("ecrit_resultat", None)
+    st.session_state["ecrit_details_partiel"] = {}
 
 termine = st.session_state.get("ecrit_termine", False)
 temps_ecoule = False
@@ -77,6 +78,32 @@ if not termine:
 
 st.divider()
 
+def _corriger_manquants(indices: list[int]):
+    """Corrige (IA) les questions de `indices` dont le texte actuel n'est pas déjà
+    en cache - appelée question par question dès que l'étudiant quitte un champ,
+    ET en rattrapage sur toutes les questions au moment de valider. Comme la plupart
+    sont déjà corrigées au fil de l'examen, il ne reste presque jamais rien à
+    corriger à ce moment-là : le résultat s'affiche donc immédiatement, sans le
+    délai d'un gros appel IA final. Une réponse vidée après coup oublie sa
+    correction (sinon elle resterait comptée comme bonne alors qu'elle est vide)."""
+    cache = st.session_state.setdefault("ecrit_details_partiel", {})
+    a_faire = []
+    for i in indices:
+        texte = (st.session_state["ecrit_reponses"].get(i) or "").strip()
+        if not texte:
+            cache.pop(i, None)
+            continue
+        if cache.get(i, {}).get("texte") == texte:
+            continue  # déjà corrigé pour ce texte exact
+        a_faire.append(i)
+    if not a_faire:
+        return
+    sous_reponses = [(st.session_state["ecrit_reponses"][i] or "").strip() for i in a_faire]
+    _, _, sous_details = corriger_ecrit([questions[i] for i in a_faire], sous_reponses)
+    for idx, i in enumerate(a_faire):
+        cache[i] = {"texte": sous_reponses[idx], **sous_details[idx]}
+
+
 for i, q in enumerate(questions):
     st.markdown(f"**{i + 1}. {q['enonce']}**")
     reponse = st.text_area(
@@ -89,12 +116,32 @@ for i, q in enumerate(questions):
         placeholder="Rédige ta réponse ici...",
     )
     st.session_state["ecrit_reponses"][i] = reponse
+    if not termine and reponse.strip():
+        try:
+            _corriger_manquants([i])
+        except Exception:
+            pass  # pas grave : rattrapé automatiquement à la validation
     st.write("")
 
 
 def _corriger_et_sauver():
+    # Rattrape toute question pas encore corrigée (ex: modifiée juste avant de
+    # valider, sans avoir quitté le champ) - normalement peu ou rien à ce stade.
+    _corriger_manquants(list(range(len(questions))))
+    cache = st.session_state.get("ecrit_details_partiel", {})
+
     reponses_texte = [st.session_state["ecrit_reponses"][i] for i in range(len(questions))]
-    score, score_max, details = corriger_ecrit(questions, reponses_texte)
+    # `cache[i]` contient aussi la clé "texte" (interne, sert juste à savoir si une
+    # réponse a déjà été corrigée) - on ne garde que correcte/commentaire, comme avant.
+    details = [
+        {"correcte": cache[i]["correcte"], "commentaire": cache[i]["commentaire"]}
+        if i in cache
+        else {"correcte": False, "commentaire": "Pas de réponse donnée."}
+        for i in range(len(questions))
+    ]
+    score = sum(1 for d in details if d.get("correcte"))
+    score_max = len(questions)
+
     st.session_state["ecrit_resultat"] = {
         "score": score,
         "score_max": score_max,
@@ -150,6 +197,9 @@ if termine and st.session_state.get("ecrit_resultat"):
             st.write(q["reponse_modele"])
 
     if st.button("Retour au cours"):
-        for cle in ["ecrit_session_key", "ecrit_reponses", "ecrit_termine", "ecrit_debut", "ecrit_resultat"]:
+        for cle in [
+            "ecrit_session_key", "ecrit_reponses", "ecrit_termine", "ecrit_debut",
+            "ecrit_resultat", "ecrit_details_partiel",
+        ]:
             st.session_state.pop(cle, None)
         st.switch_page("pages/1_Mon_cours.py")
